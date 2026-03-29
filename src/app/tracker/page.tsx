@@ -1,0 +1,10 @@
+import TrackerSection from "@/components/sections/TrackerSection";
+
+export const metadata = {
+  title: "Tracker — SCC RAN Portal",
+  description: "ASGARD site tracker and resource management.",
+};
+
+export default function TrackerPage() {
+  return <TrackerSection />;
+}

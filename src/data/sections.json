@@ -1,0 +1,183 @@
+[
+  {
+    "slug": "ran-functions-and-limitations",
+    "title": "RAN FUNCTIONS AND LIMITATIONS",
+    "parentSlug": "know-more",
+    "author": "Paulinne Clairre Borlagdan",
+    "authorUrl": "https://mail.google.com/mail/u/0/?hl=en&tf=cm&fs=1&to=ppborlagdan@globe.com.ph",
+    "order": 0,
+    "colSpan": 2,
+    "media": [
+      {
+        "type": "youtube",
+        "yurl": "https://www.youtube.com/watch?v=0BDD5eMoGeE&list=PLSpc0Sm245ez0Map2smGi-27Ao0Uu0ud5",
+        "caption": "RAN Functions Presentation"
+      }
+    ],
+    "buttonLabel": "READ DOCUMENT",
+    "buttonUrl": "https://docs.google.com/presentation/d/1M0xs3Hwe-0DQqLIXgLrVLEljzcfYckoJfpuigDBxLsU/edit?usp=sharing"
+  },
+  {
+    "slug": "integration-process",
+    "title": "INTEGRATION PROCESS",
+    "parentSlug": "know-more",
+    "order": 1,
+    "colSpan": 2,
+    "media": [
+      {
+        "type": "google-slides",
+        "gurl": "https://docs.google.com/presentation/d/1M0xs3Hwe-0DQqLIXgLrVLEljzcfYckoJfpuigDBxLsU/edit?usp=sharing",
+        "caption": "RAN Functions Presentation"
+      }
+    ],
+    "links": [
+      {
+        "label": "Google Form",
+        "url": "https://docs.google.com/forms/d/e/1FAIpQLSf9O2wlqjlcv1uUAe-cHGNDpH6iEq7FOvNqeUl5lwP3tKdAhA/viewform"
+      },
+      {
+        "label": "Request Logs",
+        "url": "https://goo.gl/Z7LXSo"
+      }
+    ]
+  },
+  {
+    "slug": "icd-quality-ticket-issuance",
+    "title": "ICD QUALITY TICKET ISSUANCE",
+    "parentSlug": "know-more",
+    "media": [
+      {
+        "type": "google-slides",
+        "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156",
+        "caption": "RAN Functions Presentation"
+      }
+    ],
+    "description": "",
+    "order": 2,
+    "colSpan": 2
+  },
+  {
+    "slug": "lte-local-cell-id",
+    "title": "LTE LOCAL CELL ID",
+    "parentSlug": "know-more",
+    "author": "Elaine Hilary Bayla",
+    "authorUrl": "https://mail.google.com/mail/u/0/?hl=en&view=cm&tf=1&fs=1&to=embayla@globe.com.ph",
+    "order": 3,
+    "colSpan": 2,
+    "media": [
+      {
+        "type": "youtube",
+        "yurl": "https://www.youtube.com/watch?v=K9IFOkKvvX0",
+        "caption": "LTE LOCAL CELL ID"
+      }
+    ]
+  },
+  {
+    "slug": "Integration SCRIPT CheckLIST (2G/3G/4G)",
+    "title": "Integration SCRIPT CheckLIST (2G/3G/4G)",
+    "parentSlug": "know-more",
+    "author": "Mary Grace Bautista ",
+    "authorUrl": "https://mail.google.com/mail/u/0/?hl=en&view=cm&tf=1&fs=1&to=mdbautista@globe.com.ph",
+    "order": 4,
+    "colSpan": 2,
+    "media": [
+      {
+        "type": "youtube",
+        "yurl": "https://youtu.be/FeepbCfuisY?si=IIR6PTQ4FsI_yySE",
+        "caption": "Integration SCRIPT CheckLIST (2G/3G/4G)"
+      }
+    ]
+  },
+  {
+    "slug": "ltr-trfs-broadcast-process",
+    "title": "LTR TRFS BROADCAST PROCESS",
+    "parentSlug": "know-more",
+    "order": 5,
+    "media": [
+      {
+        "type": "image",
+        "url": "/lte-trfs.jpg",
+        "caption": "LTR TRFS BROADCAST PROCESS"
+      }
+    ]
+  },
+  {
+    "slug": "lte-on-air-broadcast-process",
+    "title": "LTE ON-AIR BROADCAST PROCESS",
+    "parentSlug": "know-more",
+    "order": 6,
+    "media": [
+      {
+        "type": "image",
+        "url": "/lte-on-air.jpg",
+        "caption": "LTE ON-AIR BROADCAST PROCESS"
+      }
+    ]
+  },
+  {
+    "slug": "2g-north-luzon",
+    "title": "NORTH LUZON",
+    "parentSlug": "report-2g",
+    "order": 7,
+    "slides": [
+      {
+        "slug": "2g-nl-main-slide",
+        "title": "",
+        "layout": "single",
+        "order": 1,
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          }
+        ]
+      },
+      {
+        "slug": "2g-nl-detailed-links",
+        "title": "",
+        "layout": "double",
+        "order": 2,
+        "backgroundImage": "/ice-bg.jpg",
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          },
+          {
+            "type": "text",
+            "content": "<div class='flex flex-col gap-3 font-mono text-sm underline tracking-wide'><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Site Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Neighboring Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM External Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Channel Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Carrier Report RAN Report GSM</a><ul class='list-disc pl-5 mt-4 no-underline'><li><a href='#' class='underline hover:text-nasa-light-cyan transition-colors'>List of NEs per BSC</a></li></ul></div>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "2g-ncr",
+    "title": "NATIONAL CAPITAL REGION",
+    "parentSlug": "report-2g",
+    "order": 8,
+    "slides": [
+      {
+        "slug": "2g-ncr-main-slide",
+        "title": "",
+        "layout": "single",
+        "order": 1,
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

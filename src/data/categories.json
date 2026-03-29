@@ -1,0 +1,391 @@
+[
+  {
+    "slug": "dashboards",
+    "title": "DASHBOARDS",
+    "parentSlug": "home",
+    "order": 0,
+    "tools": [
+      {
+        "slug": "main-dashboard",
+        "title": "MAIN Dashboard",
+        "url": "http://10.62.1.205:9300/bi/?perspective=dashboard&pathRef=.public_folders%2FGlobe-Reports%2FNTG-OPS%2BReports%2FNTG-OPS-Service%2BCommand%2BCenter%2B%2528SCC%2529%2FNTG-OPS-SCC-Technical%2BAssistance%2BCenter%2B%2528TAC%2529%2FTAC%2BMAIN%2BDASHBOARD%2B2024&action=view&mode=dashboard&subView=model0000018e6acc677e_00000001",
+        "description": "Primary network overview.",
+        "icon": "Layout",
+        "categorySlug": "dashboards",
+        "order": 0
+      },
+      {
+        "slug": "nasa-cm-dashboard",
+        "title": "NASA CM Dashboard",
+        "url": "https://globe.service-now.com/now/nav/ui/classic/params/target/%24pa_dashboard.do%3Fsysparm_dashboard%3Dba31756a930466949ab4b6fa2bba104f%26sysparm_tab%3Db381c6fd93586a143277b8e32bba104f%26sysparm_cancelable%3Dtrue%26sysparm_editable%3Dtrue%26sysparm_active_panel%3DquickLayoutSideContent",
+        "description": "Configuration management portal.",
+        "icon": "Database",
+        "categorySlug": "dashboards",
+        "order": 1
+      },
+      {
+        "slug": "artis-dashboard",
+        "title": "ARTIS 2.0 Dashboard",
+        "url": "https://globe.service-now.com/now/nav/ui/classic/params/target/%24pa_dashboard.do%3Fsysparm_dashboard%3D923aad9647a2a650e0eca654116d43c2%26sysparm_tab%3D9b9aed1e47a2a650e0eca654116d43bf%26sysparm_cancelable%3Dtrue%26sysparm_editable%3Dtrue%26sysparm_active_panel%3DaddWidgetSideContent",
+        "description": "Advanced reporting tool.",
+        "icon": "BarChart3",
+        "categorySlug": "dashboards",
+        "order": 2
+      },
+      {
+        "slug": "ServiceNow (IT ISG)",
+        "title": "ServiceNow (IT ISG)",
+        "url": "https://globe.service-now.com/sp",
+        "description": "ServiceNow (IT ISG).",
+        "icon": "ShieldCheck",
+        "categorySlug": "dashboards",
+        "order": 3
+      },
+      {
+        "slug": "workday",
+        "title": "Workday",
+        "url": "https://wd3.myworkday.com/globe/",
+        "description": "HR and payroll management.",
+        "icon": "Users",
+        "categorySlug": "operations",
+        "order": 4
+      },
+      {
+        "slug": "mycom",
+        "title": "MyComOSI Pro Optima",
+        "url": "https://welcome-page-pm-eaa.globe.saas.mycom-osi.com/jws/",
+        "description": "MyComOSI Pro Optima.",
+        "icon": "Activity",
+        "categorySlug": "operations",
+        "order": 5
+      },
+      {
+        "slug": "bindr",
+        "title": "BINDR",
+        "url": "https://10.244.2.130/bindr/portal/login",
+        "description": "BINDR.",
+        "icon": "Terminal",
+        "categorySlug": "operations",
+        "order": 6
+      },
+      {
+        "slug": "QTR-TAC",
+        "title": "QTR-TAC",
+        "url": "https://10.244.2.130/qtr-tac/",
+        "description": "QTR-TAC.",
+        "icon": "Computer",
+        "categorySlug": "operations",
+        "order": 7
+      }
+    ]
+  },
+  {
+    "slug": "operations",
+    "title": "OPERATIONS",
+    "parentSlug": "home",
+    "order": 1,
+    "tools": [
+      {
+        "slug": "ops-contacts",
+        "title": "OPS Contacts",
+        "url": "https://sites.google.com/globe.com.ph/projecthelloph2",
+        "description": "Ops contact directory.",
+        "icon": "Phone",
+        "categorySlug": "operations",
+        "order": 0
+      },
+      {
+        "slug": "escalera",
+        "title": "Escalera",
+        "url": "https://www.appsheet.com/start/f51d3f52-85d7-42a1-a2f8-1c5ba644ee2e",
+        "description": "Escalera contact directory.",
+        "icon": "",
+        "categorySlug": "operations",
+        "order": 1
+      },
+      {
+        "slug": "ops-adv-support",
+        "title": "OPS Adv Support",
+        "url": "#",
+        "description": "AppSheet support portal.",
+        "icon": "Zap",
+        "categorySlug": "operations",
+        "order": 2
+      },
+      {
+        "slug": "workvivo",
+        "title": "Workvivo",
+        "url": "https://lifeatglobe.workvivo.com/",
+        "description": "workvivo.",
+        "icon": "MessageSquare",
+        "categorySlug": "operations",
+        "order": 3
+      },
+      {
+        "slug": "sielo",
+        "title": "SIELO",
+        "url": "https://script.google.com/a/macros/globe.com.ph/s/AKfycbwmnx5bz0CONfyX95D2qFA5on_r9Uuova4ly-UZ0JGYUp65u3wUrt2CrkvZOQ-_qw/exec?page=admin",
+        "description": "SIELO (RSC) communication.",
+        "icon": "Activity",
+        "categorySlug": "operations",
+        "order": 4
+      },
+      {
+        "slug": "worktools",
+        "title": "Worktools",
+        "url": "https://www.outsystems.com/",
+        "description": "Internal utility suite.",
+        "icon": "Terminal",
+        "categorySlug": "operations",
+        "order": 5
+      },
+      {
+        "slug": "tac-sabbath",
+        "title": "TAC Sabbath",
+        "url": "https://aldous.globetel.com/sabbat/portal/login",
+        "description": "TAC Sabbath.",
+        "icon": "Terminal",
+        "categorySlug": "operations",
+        "order": 6
+      },
+      {
+        "slug": "CLique",
+        "title": "CLIQUE",
+        "url": "https://www.appsheet.com/start/6d786244-b86a-4e65-bed6-cc5845751e57",
+        "description": "CLIQUE.",
+        "icon": "Terminal",
+        "categorySlug": "operations",
+        "order": 7
+      }
+    ]
+  },
+  {
+    "slug": "network-management",
+    "title": "NETWORK MANAGEMENT",
+    "parentSlug": "home",
+    "order": 2,
+    "tools": [
+      {
+        "slug": "netact-vis",
+        "title": "NetAct (VIS)",
+        "url": "https://waslb.netact2.globe.com.ph/authentication/Login",
+        "description": "Nokia network management Visayas.",
+        "icon": "Globe",
+        "categorySlug": "network-management",
+        "order": 0
+      },
+      {
+        "slug": "netact-min",
+        "title": "NetAct (MIN)",
+        "url": "https://waslb.netact.globe.com.ph/authentication/Login",
+        "description": "Nokia network management Mindanao.",
+        "icon": "Globe",
+        "categorySlug": "network-management",
+        "order": 1
+      },
+      {
+        "slug": "netact-3",
+        "title": "NetAct-3",
+        "url": "https://waslb.netact3.globe.com.ph/",
+        "description": "Nokia network management 3.",
+        "icon": "Globe",
+        "categorySlug": "network-management",
+        "order": 2
+      },
+      {
+        "slug": "zte-ume",
+        "title": "ZTE UME",
+        "url": "#",
+        "description": "ZTE element management.",
+        "icon": "Globe",
+        "categorySlug": "network-management",
+        "order": 3
+      },
+      {
+        "slug": "nce-super",
+        "title": "NCE-Super",
+        "url": "#",
+        "description": "Next-gen network controller.",
+        "icon": "Cpu",
+        "categorySlug": "network-management",
+        "order": 4
+      }
+    ]
+  },
+  {
+    "slug": "mae",
+    "title": "MAE",
+    "parentSlug": "home",
+    "order": 3,
+    "tools": [
+      {
+        "slug": "NLZ",
+        "title": "NLZ",
+        "url": "https://10.51.13.4:31943/",
+        "description": "MAE NLZ.",
+        "icon": "Globe",
+        "categorySlug": "mae",
+        "order": 0
+      },
+      {
+        "slug": "NCR",
+        "title": "NCR",
+        "url": "https://10.51.12.4:31943/",
+        "description": "MAE NCR.",
+        "icon": "Globe",
+        "categorySlug": "mae",
+        "order": 1
+      },
+      {
+        "slug": "SLZ",
+        "title": "SLZ",
+        "url": "https://10.51.14.4:31943/",
+        "description": "MAE SLZ.",
+        "icon": "Globe",
+        "categorySlug": "mae",
+        "order": 2
+      },
+      {
+        "slug": "VISMIN",
+        "title": "VISMIN",
+        "url": "https://10.51.16.4:31943/",
+        "description": "MAE VISMIN.",
+        "icon": "Globe",
+        "categorySlug": "mae",
+        "order": 3
+      }
+    ]
+  },
+  {
+    "slug": "core",
+    "title": "CORE",
+    "parentSlug": "home",
+    "order": 4,
+    "tools": [
+      {
+        "slug": "URL 1",
+        "title": "URL 1",
+        "url": "https://10.203.8.194:31943/mbbportalwebsite/index.html?currentApp=U2020-M#/ng/omc/mml/command?tabId=0",
+        "description": "URL 1.",
+        "icon": "Terminal",
+        "categorySlug": "mae",
+        "order": 0
+      },
+      {
+        "slug": "URL 2",
+        "title": "URL 2",
+        "url": "https://10.203.104.194:31943/",
+        "description": "URL 2.",
+        "icon": "Terminal",
+        "categorySlug": "mae",
+        "order": 1
+      }
+    ]
+  },
+  {
+    "slug": "service-management",
+    "title": "SERVICE MANAGEMENT",
+    "parentSlug": "home",
+    "order": 5,
+    "tools": [
+      {
+        "slug": "newasgard",
+        "title": "New Asgard - TONSBERG",
+        "url": "http://canary.globetel.com/asgard/index.php",
+        "description": "New Asgard - TONSBERG.",
+        "icon": "ShieldCheck",
+        "categorySlug": "service-management",
+        "order": 0
+      },
+      {
+        "slug": "oss-maximo",
+        "title": "OSS Maximo",
+        "url": "https://ossmaximo.globe.com.ph/maximo",
+        "description": "Asset management portal.",
+        "icon": "Database",
+        "categorySlug": "service-management",
+        "order": 1
+      },
+      {
+        "slug": "oss-maximo public",
+        "title": "OSS Maximo Public",
+        "url": "https://ossmaximo-pub-ws.globe.com.ph/maximo",
+        "description": "Asset management portal.",
+        "icon": "Database",
+        "categorySlug": "service-management",
+        "order": 2
+      },
+      {
+        "slug": "icd-ticket",
+        "title": "ICD Ticket",
+        "url": "https://ossicd.globe.com.ph/maximo/",
+        "description": "ICD Ticket.",
+        "icon": "Ticket",
+        "categorySlug": "service-management",
+        "order": 3
+      },
+      {
+        "slug": "icd-ticket-public",
+        "title": "ICD Ticket (Public)",
+        "url": "https://ossicd-pub-ws.globe.com.ph/maximo/",
+        "description": "ICD Ticket.",
+        "icon": "Ticket",
+        "categorySlug": "service-management",
+        "order": 4
+      },
+      {
+        "slug": "netcool",
+        "title": "Netcool",
+        "url": "#",
+        "description": "Event management system.",
+        "icon": "Zap",
+        "categorySlug": "service-management",
+        "order": 5
+      },
+      {
+        "slug": "territory-hardpoint",
+        "title": "Territory (Hardpoint)",
+        "url": "https://drive.google.com/drive/folders/1CR8m_9JngQ9ccu8vXUFGe8JYU_G4jIeZ",
+        "description": "Territory (Hardpoint).",
+        "icon": "MapPin",
+        "categorySlug": "service-management",
+        "order": 6
+      }
+    ]
+  },
+  {
+    "slug": "edu",
+    "title": "Education",
+    "parentSlug": "home",
+    "order": 6,
+    "tools": [
+      {
+        "slug": "Aloha",
+        "title": "Aloha",
+        "url": "https://10.244.2.130/aloha/",
+        "description": "Aloha.",
+        "icon": "ShieldCheck",
+        "categorySlug": "edu",
+        "order": 0
+      },
+      {
+        "slug": "GNOSIS",
+        "title": "GNOSIS",
+        "url": "https://sites.google.com/globe.com.ph/radioaccessnetwork/home",
+        "description": "GNOSIS.",
+        "icon": "ShieldCheck",
+        "categorySlug": "edu",
+        "order": 1
+      },
+      {
+        "slug": "GSCC TAC Modules",
+        "title": "GSCC TAC Modules",
+        "url": "https://sites.google.com/globe.com.ph/tac-modules/modules",
+        "description": "GSCC TAC Modules.",
+        "icon": "ShieldCheck",
+        "categorySlug": "edu",
+        "order": 2
+      }
+    ]
+  }
+]

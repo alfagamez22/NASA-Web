@@ -1,0 +1,405 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for theming */
+:root[data-theme="dark"],
+:root:not([data-theme]) {
+  --bg-primary: #050a15;
+  --bg-secondary: #0a1428;
+  --bg-tertiary: rgba(26, 58, 82, 0.3);
+  --bg-card: rgba(26, 58, 82, 0.4);
+
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff;
+
+  /* -text-secondary: #c0b0a0; */
+  /* --text-primary: #e8dcc8; */
+  --border-color: rgba(0, 212, 255, 0.3);
+  --border-color-strong: rgba(0, 212, 255, 0.5);
+  --accent-color: #00d4ff;
+  --accent-light: #00e8ff;
+  --glow-color: rgba(0, 212, 255, 0.3);
+}
+
+
+
+@layer base {
+  body {
+    @apply bg-nasa-darker text-nasa-light-gray font-sans;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  *::selection {
+    background-color: var(--accent-color);
+    color: var(--bg-primary);
+  }
+}
+
+@layer components {
+
+  /* NASA Theme Components */
+  .nasa-border {
+    border: 2px solid var(--border-color-strong);
+    transition: border-color 0.3s ease;
+  }
+
+  .nasa-border-thick {
+    border: 3px solid var(--border-color-strong);
+    transition: border-color 0.3s ease;
+  }
+
+  .nasa-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(10, 20, 40, 0.6) 100%);
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nasa-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(0, 212, 255, 0.05) 50%, transparent 70%);
+    pointer-events: none;
+  }
+
+
+
+  .nasa-card:hover {
+    border-color: var(--border-color-strong);
+    box-shadow: 0 0 20px var(--glow-color), inset 0 0 15px rgba(0, 212, 255, 0.1);
+    transform: translateY(-2px);
+  }
+
+
+
+  .nasa-btn {
+    border: 2px solid var(--border-color-strong);
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.05em;
+    transition: all 0.2s ease;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(10, 20, 40, 0.8) 100%);
+    color: var(--accent-color);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nasa-btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--accent-light), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .nasa-btn:hover {
+    border-color: var(--accent-light);
+    color: var(--accent-light);
+    box-shadow: 0 0 15px var(--glow-color), inset 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+
+  .nasa-btn:hover::before {
+    left: 100%;
+  }
+
+  .nasa-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Legacy brutal classes maintained for compatibility */
+  .brutal-border {
+    border: 2px solid var(--border-color-strong);
+  }
+
+  .brutal-border-thick {
+    border: 4px solid var(--border-color-strong);
+  }
+
+  .brutal-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(10, 20, 40, 0.6) 100%);
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .brutal-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 0 0 20px var(--glow-color);
+    border-color: var(--border-color-strong);
+  }
+
+  .brutal-btn {
+    border: 2px solid var(--border-color-strong);
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.05em;
+    transition: all 0.2s ease;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(10, 20, 40, 0.8) 100%);
+    color: var(--accent-color);
+    cursor: pointer;
+  }
+
+  .brutal-btn:hover {
+    border-color: var(--accent-light);
+    color: var(--accent-light);
+    box-shadow: 0 0 15px var(--glow-color);
+  }
+
+  .brutal-btn:active {
+    transform: scale(0.98);
+  }
+
+  .marquee-text {
+    font-family: "Anton", sans-serif;
+    font-size: 5rem;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--accent-color);
+    text-shadow: 0 0 10px var(--glow-color);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-left: 2px solid var(--border-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent-color), var(--accent-light));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-light), var(--accent-color));
+}
+
+@layer components {
+
+  /* NASA Theme Components */
+  .nasa-border {
+    border: 2px solid rgba(0, 212, 255, 0.5);
+  }
+
+  .nasa-border-thick {
+    border: 3px solid rgba(0, 212, 255, 0.7);
+  }
+
+  .nasa-card {
+    background: linear-gradient(135deg, rgba(26, 58, 82, 0.4) 0%, rgba(10, 20, 40, 0.6) 100%);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nasa-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(0, 212, 255, 0.05) 50%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .nasa-card:hover {
+    border-color: rgba(0, 232, 255, 0.6);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4), inset 0 0 15px rgba(0, 212, 255, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .nasa-btn {
+    border: 2px solid rgba(0, 212, 255, 0.6);
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.05em;
+    transition: all 0.2s ease;
+    background: linear-gradient(135deg, rgba(26, 58, 82, 0.6) 0%, rgba(10, 20, 40, 0.8) 100%);
+    color: #00d4ff;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nasa-btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 232, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .nasa-btn:hover {
+    border-color: rgba(0, 232, 255, 0.9);
+    color: #00e8ff;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5), inset 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+
+  .nasa-btn:hover::before {
+    left: 100%;
+  }
+
+  .nasa-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Legacy brutal classes maintained for compatibility */
+  .brutal-border {
+    border: 2px solid #000000;
+  }
+
+  .brutal-border-thick {
+    border: 4px solid #000000;
+  }
+
+  .brutal-card {
+    background: linear-gradient(135deg, rgba(26, 58, 82, 0.4) 0%, rgba(10, 20, 40, 0.6) 100%);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .brutal-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    border-color: rgba(0, 232, 255, 0.6);
+  }
+
+  .brutal-btn {
+    border: 2px solid rgba(0, 212, 255, 0.6);
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.05em;
+    transition: all 0.2s ease;
+    background: linear-gradient(135deg, rgba(26, 58, 82, 0.6) 0%, rgba(10, 20, 40, 0.8) 100%);
+    color: #00d4ff;
+    cursor: pointer;
+  }
+
+  .brutal-btn:hover {
+    border-color: rgba(0, 232, 255, 0.9);
+    color: #00e8ff;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+  }
+
+  .brutal-btn:active {
+    transform: scale(0.98);
+  }
+
+  .marquee-text {
+    font-family: "Anton", sans-serif;
+    font-size: 5rem;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--accent-color);
+    text-shadow: 0 0 10px var(--glow-color);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Outer wrapper: two tracks side-by-side, animates as one unit */
+.marquee-inner {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+/* Each track fills exactly half the total width */
+.marquee-track {
+  display: flex;
+  flex-shrink: 0;
+}
+
+/* Hero Banner – dark mode (default) */
+.hero-banner {
+  background-color: rgba(26, 58, 82, 0.4);
+  color: var(--text-primary);
+}
+
+.hero-heading {
+  color: rgba(0, 232, 255, 0.9);
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+
+/* NASA Theme Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(10, 20, 40, 0.8);
+  border-left: 2px solid rgba(0, 212, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00d4ff, rgba(0, 212, 255, 0.5));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #00e8ff, rgba(0, 232, 255, 0.7));
+}

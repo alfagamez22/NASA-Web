@@ -1,0 +1,73 @@
+[
+  {
+    "slug": "home",
+    "title": "HOME",
+    "href": "/",
+    "display": "HOME",
+    "order": 0,
+    "children": [
+      "dashboards",
+      "operations",
+      "network-management",
+      "service-management"
+    ]
+  },
+  {
+    "slug": "know-more",
+    "title": "KNOW MORE",
+    "href": "/know-more",
+    "display": "KNOW MORE",
+    "order": 1,
+    "children": [
+      "ran-functions-and-limitations",
+      "integration-process",
+      "icd-quality-ticket-issuance"
+    ]
+  },
+  {
+    "slug": "tracker",
+    "title": "TRACKER",
+    "href": "/tracker",
+    "display": "TRACKER",
+    "order": 2,
+    "children": []
+  },
+  {
+    "slug": "report",
+    "title": "REPORT",
+    "href": "/report",
+    "display": "RAN REPORT",
+    "order": 3,
+    "subNav": [
+      {
+        "display": "2G REPORT",
+        "href": "/report/2g"
+      },
+      {
+        "display": "3G REPORT",
+        "href": "/report/3g"
+      },
+      {
+        "display": "LTE REPORT",
+        "href": "/report/lte"
+      }
+    ]
+  },
+  {
+    "slug": "team",
+    "title": "TEAM",
+    "href": "/team",
+    "display": "TEAM",
+    "order": 4,
+    "subNav": [
+      {
+        "display": "TEAM DRIVE",
+        "href": "/team/drive"
+      },
+      {
+        "display": "INSIDE VORTEX",
+        "href": "/team/inside-vortex"
+      }
+    ]
+  }
+]
