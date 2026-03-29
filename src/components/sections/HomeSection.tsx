@@ -16,37 +16,48 @@ export default function HomeSection() {
       exit={{ opacity: 0 }}
       className="space-y-0"
     >
-      {/* Hero Banner */}
       <div
-        className="p-8 md:p-16 hero-banner relative min-h-[70vh] flex flex-col justify-center"
-        style={{
-          borderBottom: "2px solid var(--border-color)",
-          backgroundImage: "linear-gradient(rgba(0, 5, 10, 0.6), rgba(0, 5, 10, 0.8)), url('/BACKGROUND.gif')",
-          backgroundSize: "cover",
-          // The first value is the X-axis (left to right), the second is the Y-axis (top to bottom).
-          // Change "50%" to other values like "50% 20%" or "center top" or "100px -50px" to precisely shift the GIF!
-          backgroundPosition: "50% 20%",
-          backgroundRepeat: "no-repeat"
-        }}
+        className="hero-banner relative min-h-[70vh] flex flex-col justify-center overflow-hidden"
+        style={{ borderBottom: "2px solid var(--border-color)" }}
       >
-        <h2
-          className="font-display text-5xl md:text-7xl uppercase leading-none mb-4 hero-heading"
+        {/* Background Video */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          style={{ objectPosition: "50% 20%" }}
         >
-          NETWORK ACCESS SERVICE &amp; ASSURANCE
-        </h2>
-        <p className="font-mono text-xl uppercase" style={{ color: "var(--accent-color)", textShadow: "0 0 8px var(--glow-color)" }}>
-          DOMESTIC SERVICE OPERATION CENTER
-        </p>
-        <div className="mt-8 flex flex-wrap gap-4 font-mono text-sm">
-          {CONTACT_NUMBERS.map(({ label, number }) => (
-            <span
-              key={label}
-              className="px-3 py-1"
-              style={{ border: "2px solid var(--border-color-strong)", color: "var(--text-primary)" }}
-            >
-              {label}: {number}
-            </span>
-          ))}
+          <source src="/BACKGROUND.mp4" type="video/mp4" />
+        </video>
+
+        {/* Gradient Overlay */}
+        <div
+          className="absolute inset-0 z-10"
+          style={{ background: "linear-gradient(rgba(0, 5, 10, 0.6), rgba(0, 5, 10, 0.8))" }}
+        />
+
+        <div className="relative z-20 p-8 md:p-16">
+          <h2
+            className="font-display text-5xl md:text-7xl uppercase leading-none mb-4 hero-heading"
+          >
+            NETWORK ACCESS SERVICE &amp; ASSURANCE
+          </h2>
+          <p className="font-mono text-xl uppercase" style={{ color: "var(--accent-color)", textShadow: "0 0 8px var(--glow-color)" }}>
+            DOMESTIC SERVICE OPERATION CENTER
+          </p>
+          <div className="mt-8 flex flex-wrap gap-4 font-mono text-sm">
+            {CONTACT_NUMBERS.map(({ label, number }) => (
+              <span
+                key={label}
+                className="px-3 py-1"
+                style={{ border: "2px solid var(--border-color-strong)", color: "var(--text-primary)" }}
+              >
+                {label}: {number}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
