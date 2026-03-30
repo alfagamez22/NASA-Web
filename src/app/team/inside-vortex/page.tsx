@@ -1,15 +1,11 @@
-import TBAReport from "@/components/sections/TBAReport";
+import type { Metadata } from "next";
+import InsideVortexSection from "@/components/sections/InsideVortexSection";
 
-export const metadata = {
-  title: "Inside Vortex — SCC RAN Portal",
+export const metadata: Metadata = {
+  title: "What's Inside the Vortex - SCC RAN Portal",
+  description: "A cinematic guided breakdown of the VORTEX layers and modules.",
 };
 
 export default function InsideVortexPage() {
-  return (
-    <TBAReport
-      title="WHATS INSIDE THE VORTEX"
-      videoSrc="/laserflow.webm"
-      objectPosition="50% 100%"
-    />
-  );
+  return <InsideVortexSection />;
 }
