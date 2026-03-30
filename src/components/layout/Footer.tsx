@@ -11,7 +11,7 @@ const QR_SRC = `https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${
 export default function Footer() {
   return (
     <footer
-      className="p-8 flex flex-col md:flex-row justify-between items-center gap-8 font-mono text-xs uppercase"
+      className="p-2 flex flex-col md:flex-row justify-between items-center gap-8 font-mono text-xs uppercase"
       style={{ borderTop: "2px solid var(--border-color)", color: "#ffffff" }}
     >
       <div className="flex flex-col md:flex-row items-center gap-8">
@@ -53,35 +53,37 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="text-center md:text-right" style={{ color: "#ffffff" }}>
-        <p>
-          We would love to hear your thoughts or feedback on how we can improve
-          your experience with VORTEX.
-        </p>
-        <p className="mt-2 font-bold text-nasa-cyan">HAVE A NICE DAY!</p>
-      </div>
+      <div className="flex items-center gap-6 text-right ml-auto" style={{ color: "#ffffff" }}>
+        <div>
+          <p>
+            We would love to hear your thoughts or feedback on how we can improve
+            your experience with VORTEX.
+          </p>
+          <p className="mt-1 font-bold text-nasa-cyan">HAVE A NICE DAY!</p>
+        </div>
 
-      {/* Real QR Code linking to feedback form */}
-      <a
-        href={FEEDBACK_FORM_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-2 block"
-        style={{
-          border: "2px solid var(--border-color-strong)",
-          backgroundColor: "var(--bg-secondary)",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={QR_SRC}
-          alt="Scan to open feedback form"
-          width={64}
-          height={64}
-          className="w-16 h-16"
-          style={{ imageRendering: "pixelated" }}
-        />
-      </a>
+        {/* Real QR Code linking to feedback form */}
+        <a
+          href={FEEDBACK_FORM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-2 block shrink-0"
+          style={{
+            border: "2px solid var(--border-color-strong)",
+            backgroundColor: "var(--bg-secondary)",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={QR_SRC}
+            alt="Scan to open feedback form"
+            width={64}
+            height={64}
+            className="w-16 h-16"
+            style={{ imageRendering: "pixelated" }}
+          />
+        </a>
+      </div>
     </footer>
   );
 }

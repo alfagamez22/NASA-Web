@@ -5,5 +5,11 @@ export const metadata = {
 };
 
 export default function InsideVortexPage() {
-  return <TBAReport title="INSIDE VORTEX" />;
+  return (
+    <TBAReport
+      title="WHATS INSIDE THE VORTEX"
+      videoSrc="/laserflow.webm"
+      objectPosition="50% 100%"
+    />
+  );
 }

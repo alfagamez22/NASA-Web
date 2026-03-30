@@ -21,6 +21,9 @@
   --accent-color: #00d4ff;
   --accent-light: #00e8ff;
   --glow-color: rgba(0, 212, 255, 0.3);
+
+  /* Scaling Variables */
+  --font-scale: clamp(0.85, 0.9vw, 1);
 }
 
 

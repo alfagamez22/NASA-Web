@@ -33,7 +33,7 @@ export default function Header() {
             const navClasses = `px-6 py-4 font-display text-xl uppercase tracking-tighter transition-all whitespace-nowrap flex items-center h-full ${isActive
               ? "bg-nasa-blue text-nasa-light-cyan"
               : "text-nasa-gray hover:text-nasa-cyan hover:bg-nasa-blue hover:bg-opacity-50"
-            }`;
+              }`;
             const navStyles = {
               borderRight: "2px solid var(--border-color)",
               color: isActive ? "var(--accent-light)" : "var(--text-secondary)",
@@ -47,7 +47,7 @@ export default function Header() {
                     {item.display}
                   </Link>
                   {/* Dropdown Menu */}
-                  <div 
+                  <div
                     className="absolute left-0 top-full hidden group-hover:block min-w-full bg-nasa-darker z-[100] shadow-lg"
                     style={{ border: "2px solid var(--border-color-strong)", borderTop: "none" }}
                   >

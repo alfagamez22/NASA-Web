@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { getCategoriesByParent } from "@/lib/content-service";
 import ToolCard from "@/components/ui/ToolCard";
+import CollapsibleCategory from "@/components/ui/CollapsibleCategory";
 import Marquee from "@/components/layout/Marquee";
 import { CONTACT_NUMBERS } from "@/lib/constants";
 
@@ -65,27 +66,77 @@ export default function HomeSection() {
       <Marquee />
 
       {/* Tool Categories Grid — dynamically loaded from content service */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0">
-        {categories.map((category, idx) => (
-          <div
-            key={category.slug}
-            className={`p-8 ${idx !== categories.length - 1 ? "md:border-r-2" : ""
-              } border-b-2 md:border-b-0`}
-            style={{ borderColor: "var(--border-color)" }}
-          >
-            <h3 className="font-display text-3xl mb-6 uppercase tracking-tighter" style={{ color: "var(--accent-color)", textShadow: "0 0 10px var(--glow-color)" }}>
-              {category.title}
-            </h3>
-            <div className="space-y-3">
-              {category.tools
-                .sort((a, b) => a.order - b.order)
-                .map((tool) => (
-                  <ToolCard key={tool.slug} tool={tool} />
-                ))}
-            </div>
-          </div>
-        ))}
+      <div className="tool-categories-wrapper w-full overflow-hidden bg-nasa-darker" style={{ borderBottom: "2px solid var(--border-color)" }}>
+        {/* Animated Background Video */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: 0.05, mixBlendMode: "overlay", zIndex: 0 }}
+        >
+          <source src="/SERVERRACKSBEHIND.mp4" type="video/mp4" />
+        </video>
+
+        {/* Blue Tint Overlay */}
+        <div 
+          className="absolute inset-0 pointer-events-none" 
+          style={{ backgroundColor: "rgba(0, 10, 20, 0.8)", mixBlendMode: "overlay", zIndex: 5 }}
+        />
+
+        <div className="scrollable-row relative z-10 flex flex-col md:flex-row transition-all duration-300 w-full no-scrollbar">
+          {categories.map((category) => (
+            <CollapsibleCategory key={category.slug} category={category} />
+          ))}
+        </div>
       </div>
+
+      <style jsx>{`
+        .tool-categories-wrapper {
+          mask-image: linear-gradient(
+            to right,
+            transparent,
+            black 2%,
+            black 98%,
+            transparent
+          );
+          position: relative;
+          background-color: var(--bg-darker);
+          z-index: 1;
+        }
+
+        .scrollable-row {
+          /* Mobile View (≤768px) */
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          gap: 0;
+        }
+
+        @media (min-width: 769px) {
+          /* Desktop / Large Screens (≥1280px) and Small Laptops */
+          .scrollable-row {
+            flex-direction: row;
+            flex-wrap: nowrap;
+            overflow-x: auto; /* Fallback to scroll if they really don't fit */
+            gap: clamp(4px, 0.5vw, 12px);
+            padding: 0 2%; /* Reduced padding to maximize space */
+          }
+        }
+
+        /* Enforce horizontal scroll when content overflows */
+        .scrollable-row::-webkit-scrollbar {
+          height: 4px;
+        }
+        .scrollable-row::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .scrollable-row::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+          border-radius: 10px;
+        }
+      `}</style>
     </motion.div>
   );
 }
