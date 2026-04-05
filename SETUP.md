@@ -570,4 +570,4 @@ Ensure `NEXTAUTH_URL` matches your actual app URL. For local dev: `http://localh
 The seed file is excluded from the Next.js type check via `tsconfig.json`. If you see errors, ensure `"prisma/seed.ts"` is in the `exclude` array.
 
 ### "Expected 1 arguments, but got 0" for PrismaClient
-Prisma v7 requires a driver adapter. The `src/lib/prisma.ts` file passes `@prisma/adapter-pg` — ensure the `DATABASE_URL` environment variable is set.
+Prisma v7 requires a driver adapter. The `src/lib/prisma.ts` file passes `@prisma/adapter-pg` — ensure the `DATABASE_URL` environment variable is set..
