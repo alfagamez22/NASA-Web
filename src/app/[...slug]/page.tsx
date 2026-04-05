@@ -3,7 +3,7 @@ import { resolveSlugRoute, getModules } from "@/lib/content-service";
 
 import HomeSection from "@/components/sections/HomeSection";
 import KnowMoreSection from "@/components/sections/KnowMoreSection";
-import TrackerSection from "@/components/sections/TrackerSection";
+// import TrackerSection from "@/components/sections/TrackerSection";
 import ReportSection from "@/components/sections/ReportSection";
 import TeamSection from "@/components/sections/TeamSection";
 import SectionDetailPage from "@/components/content/SectionDetailPage";
@@ -26,7 +26,7 @@ interface SlugPageProps {
 const MODULE_COMPONENTS: Record<string, React.ComponentType> = {
   home: HomeSection,
   "know-more": KnowMoreSection,
-  tracker: TrackerSection,
+  // tracker: TrackerSection,
   report: ReportSection,
   team: TeamSection,
 };

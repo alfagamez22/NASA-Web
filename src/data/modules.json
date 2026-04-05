@@ -25,14 +25,6 @@
     ]
   },
   {
-    "slug": "tracker",
-    "title": "TRACKER",
-    "href": "/tracker",
-    "display": "TRACKER",
-    "order": 2,
-    "children": []
-  },
-  {
     "slug": "report",
     "title": "REPORT",
     "href": "/report",
