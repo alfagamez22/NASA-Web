@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllTools, getAllSections } from "@/lib/content-service";
+import { getAllToolsLS, getAllSectionsLS } from "@/lib/data-store";
 import ToolCard from "@/components/ui/ToolCard";
 
 interface SearchModalProps {
@@ -18,8 +18,8 @@ interface SearchModalProps {
 export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const allTools = getAllTools();
-  const allSections = getAllSections();
+  const allTools = getAllToolsLS();
+  const allSections = getAllSectionsLS();
 
   const filteredTools = allTools.filter(
     (t) =>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import {
   AnimatePresence,
   motion,
@@ -9,77 +9,20 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
+import { Plus, Edit2, Trash2 } from "lucide-react";
+import { getVortexPageData, saveVortexPageData } from "@/lib/data-store";
+import { useEditMode } from "@/lib/edit-mode-context";
+import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
-const VORTEX_CATEGORIES = [
-  {
-    title: "HOME",
-    items: [
-      "Activity Tracker",
-      "RAN Hotlines",
-      "NOC Web Tools",
-      "NOC Shift Handover"
-    ]
-  },
-  {
-    title: "RAN REPORT",
-    items: [
-      "Official Network Count per PLA",
-      "NE Count per BSC/RNC per REGION",
-      "Site/Cell configuration parameters"
-    ]
-  },
-  {
-    title: "THE TEAM",
-    items: [
-      "RAN Engineers",
-      "TEAM DRIVE (Exclusive for NOC RAN use only)",
-      "Inside VORTEX"
-    ]
-  },
-  {
-    title: "KNOW MORE",
-    items: [
-      "Videos / Slides / Chart Presentations"
-    ]
-  },
-  {
-    title: "TRACKER",
-    items: [
-      "For newly integrated sites",
-      "TRFS and CRFS Dates",
-      "Site count per year"
-    ]
-  },
-  {
-    title: "ALARM LIBRARY",
-    items: [
-      "Alarm troubleshooting guide"
-    ]
-  }
+const CAT_FIELDS: FormField[] = [
+  { key: "title", label: "Category Title", required: true },
 ];
-
-const TEAM_CREDITS = [
-  { name: "JEROME, Admin 1", role: "Vortex Updates, Trackers" },
-  { name: "JHOANNA, Admin 2", role: "TeamDrive, Scripts, Survey" },
-  { name: "JONARD, Admin 3", role: "RAN Report" },
-
-  { name: "ANNA, PPM Documentation", role: "Alarm Library, PPM Documentations" },
-  { name: "GUS, PPM Documentation", role: "PPM Documentations" },
-  { name: "SETTE, PPM Documentation", role: "PPM Documentations" },
-
-  { name: "REZIEL, RAN Report Update", role: "Group List Updates" },
-  { name: "NICO, NE Listing", role: "List of NEs per BSC/RNC" },
-
-  { name: "ARMI, PPM TL", role: "PPM TL Approver" },
-  { name: "MYLA, PPM TL", role: "PPM TL Approver" },
-
-  { name: "PAU, Knowledge Management", role: "NTG Contacts Directory, Know More Presentations" },
-  { name: "GRACE, Knowledge Management", role: "PPM Documentations, Know More Presentations" },
-  { name: "ELAINE, Knowledge Management", role: "KnowMore Presentations" },
-
-  { name: "FERNAND, Tracker QA", role: "TRFS Tracker Checker" },
-  { name: "GILBERT, Monitoring", role: "SLCK/MODIF Monitoring" },
-  { name: "EDH, RAN Report Update", role: "Site Report Updates" },
+const ITEM_FIELDS: FormField[] = [
+  { key: "item", label: "Item Text", required: true },
+];
+const CREDIT_FIELDS: FormField[] = [
+  { key: "name", label: "Name / Title", required: true },
+  { key: "role", label: "Role / Description", required: true },
 ];
 
 const HEADER_OFFSET = 72;
@@ -95,6 +38,61 @@ function clampIndex(value: number, max: number) {
 export default function InsideVortexSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  const data = getVortexPageData();
+  void refreshKey;
+
+  // ── Category CRUD ──────────────────────────────────────────────────────
+  const [catModal, setCatModal] = useState<{ mode: "add" | "edit"; idx?: number; init?: Record<string, string> } | null>(null);
+  function handleAddCat() { setCatModal({ mode: "add" }); }
+  function handleEditCat(idx: number) { setCatModal({ mode: "edit", idx, init: { title: data.categories[idx].title } }); }
+  function handleDeleteCat(idx: number) {
+    const d = { ...data, categories: data.categories.filter((_, i) => i !== idx) };
+    saveVortexPageData(d); markChanged(); notifyChange("inside-vortex", "delete", "vortex category"); refresh();
+  }
+  function handleCatSubmit(vals: Record<string, string>) {
+    const cats = [...data.categories];
+    if (catModal?.mode === "edit" && catModal.idx != null) { cats[catModal.idx] = { ...cats[catModal.idx], title: vals.title }; }
+    else { cats.push({ title: vals.title, items: [] }); }
+    saveVortexPageData({ ...data, categories: cats }); markChanged(); notifyChange("inside-vortex", catModal?.mode === "edit" ? "edit" : "add", vals.title); setCatModal(null); refresh();
+  }
+
+  // ── Item CRUD (within categories) ──────────────────────────────────────
+  const [itemModal, setItemModal] = useState<{ mode: "add" | "edit"; catIdx: number; itemIdx?: number; init?: Record<string, string> } | null>(null);
+  function handleAddItem(catIdx: number) { setItemModal({ mode: "add", catIdx }); }
+  function handleEditItem(catIdx: number, itemIdx: number) { setItemModal({ mode: "edit", catIdx, itemIdx, init: { item: data.categories[catIdx].items[itemIdx] } }); }
+  function handleDeleteItem(catIdx: number, itemIdx: number) {
+    const cats = [...data.categories];
+    cats[catIdx] = { ...cats[catIdx], items: cats[catIdx].items.filter((_, i) => i !== itemIdx) };
+    saveVortexPageData({ ...data, categories: cats }); markChanged(); notifyChange("inside-vortex", "delete", "vortex item"); refresh();
+  }
+  function handleItemSubmit(vals: Record<string, string>) {
+    if (!itemModal) return;
+    const cats = [...data.categories];
+    const items = [...cats[itemModal.catIdx].items];
+    if (itemModal.mode === "edit" && itemModal.itemIdx != null) { items[itemModal.itemIdx] = vals.item; }
+    else { items.push(vals.item); }
+    cats[itemModal.catIdx] = { ...cats[itemModal.catIdx], items };
+    saveVortexPageData({ ...data, categories: cats }); markChanged(); notifyChange("inside-vortex", itemModal.mode === "edit" ? "edit" : "add", vals.item); setItemModal(null); refresh();
+  }
+
+  // ── Credit CRUD ────────────────────────────────────────────────────────
+  const [creditModal, setCreditModal] = useState<{ mode: "add" | "edit"; idx?: number; init?: Record<string, string> } | null>(null);
+  function handleAddCredit() { setCreditModal({ mode: "add" }); }
+  function handleEditCredit(idx: number) { setCreditModal({ mode: "edit", idx, init: { name: data.credits[idx].name, role: data.credits[idx].role } }); }
+  function handleDeleteCredit(idx: number) {
+    saveVortexPageData({ ...data, credits: data.credits.filter((_, i) => i !== idx) });
+    markChanged(); notifyChange("inside-vortex", "delete", "credit"); refresh();
+  }
+  function handleCreditSubmit(vals: Record<string, string>) {
+    const credits = [...data.credits];
+    if (creditModal?.mode === "edit" && creditModal.idx != null) { credits[creditModal.idx] = { name: vals.name, role: vals.role }; }
+    else { credits.push({ name: vals.name, role: vals.role }); }
+    saveVortexPageData({ ...data, credits }); markChanged(); notifyChange("inside-vortex", creditModal?.mode === "edit" ? "edit" : "add", vals.name); setCreditModal(null); refresh();
+  }
 
   const { scrollYProgress: sectionProgress } = useScroll({
     target: sectionRef,
@@ -301,13 +299,13 @@ export default function InsideVortexSection() {
 
                     {/* Subpage Grid of Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 w-full pb-8">
-                      {VORTEX_CATEGORIES.map((category, idx) => (
+                      {data.categories.map((category, idx) => (
                         <motion.div
-                          key={category.title}
+                          key={category.title + idx}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: idx * 0.08, ease: "easeOut" }}
-                          className="nasa-card flex flex-col h-full hover:-translate-y-1 transition-transform duration-300"
+                          className="nasa-card flex flex-col h-full hover:-translate-y-1 transition-transform duration-300 group/card relative"
                           style={{
                             background:
                               "linear-gradient(135deg, rgba(5, 10, 21, 0.75) 0%, rgba(2, 5, 12, 0.95) 100%)",
@@ -315,6 +313,12 @@ export default function InsideVortexSection() {
                             border: "1px solid var(--border-color-strong)",
                           }}
                         >
+                          {isEditMode && (
+                            <div className="absolute top-2 right-2 z-10 hidden group-hover/card:flex gap-1">
+                              <button onClick={() => handleEditCat(idx)} className="p-1 bg-cyan-600/80 rounded hover:bg-cyan-500"><Edit2 size={12} /></button>
+                              <button onClick={() => handleDeleteCat(idx)} className="p-1 bg-red-600/80 rounded hover:bg-red-500"><Trash2 size={12} /></button>
+                            </div>
+                          )}
                           {/* Card Title Header */}
                           <div className="border-b-[1px] border-[var(--border-color)] pb-3 mb-5">
                             <p
@@ -336,24 +340,36 @@ export default function InsideVortexSection() {
 
                           {/* Information List Items */}
                           <ul className="flex flex-col gap-4 flex-grow">
-                            {category.items.map((item) => (
-                              <li key={item} className="flex items-start gap-4">
+                            {category.items.map((item, iIdx) => (
+                              <li key={item + iIdx} className="flex items-start gap-4 group/item">
                                 <span
                                   className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-[var(--accent-light)] transition-all duration-300 group-hover:bg-[var(--accent-color)]"
                                   style={{ boxShadow: "0 0 8px var(--glow-color)" }}
                                 />
                                 <span
-                                  className="font-mono text-sm uppercase leading-relaxed text-left"
+                                  className="font-mono text-sm uppercase leading-relaxed text-left flex-1"
                                   style={{ color: "var(--text-primary)" }}
                                 >
                                   {item}
                                 </span>
+                                {isEditMode && (
+                                  <span className="hidden group-hover/item:flex gap-1 shrink-0">
+                                    <button onClick={() => handleEditItem(idx, iIdx)} className="p-0.5 bg-cyan-600/80 rounded hover:bg-cyan-500"><Edit2 size={10} /></button>
+                                    <button onClick={() => handleDeleteItem(idx, iIdx)} className="p-0.5 bg-red-600/80 rounded hover:bg-red-500"><Trash2 size={10} /></button>
+                                  </span>
+                                )}
                               </li>
                             ))}
                           </ul>
+                          {isEditMode && (
+                            <button onClick={() => handleAddItem(idx)} className="nasa-btn text-xs mt-3 flex items-center gap-1 self-start"><Plus size={12} /> Add Item</button>
+                          )}
                         </motion.div>
                       ))}
                     </div>
+                    {isEditMode && (
+                      <button onClick={handleAddCat} className="nasa-btn text-sm flex items-center gap-2 mx-auto mb-4"><Plus size={14} /> Add Category</button>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -376,15 +392,15 @@ export default function InsideVortexSection() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6 w-full max-w-6xl mx-auto">
-                      {TEAM_CREDITS.map((credit, idx) => (
-                        <div key={idx} className="flex items-baseline w-full gap-3 group">
+                      {data.credits.map((credit, idx) => (
+                        <div key={idx} className="flex items-baseline w-full gap-3 group/credit">
                           {/* Left: Name */}
                           <span className="shrink-0 font-display uppercase tracking-widest text-sm md:text-base whitespace-nowrap" style={{ color: "var(--text-primary)", textShadow: "0 0 8px rgba(255,255,255,0.2)" }}>
                             {credit.name}
                           </span>
 
                           {/* Middle: Expanding Line */}
-                          <div className="flex-1 border-b border-[rgba(255,255,255,0.15)] group-hover:border-[var(--accent-color)] transition-colors duration-300 min-w-[30px] opacity-70 relative top-[-4px]" />
+                          <div className="flex-1 border-b border-[rgba(255,255,255,0.15)] group-hover/credit:border-[var(--accent-color)] transition-colors duration-300 min-w-[30px] opacity-70 relative top-[-4px]" />
 
                           {/* Right: Role */}
                           <div className="flex shrink text-right max-w-[55%] lg:max-w-[45%]">
@@ -392,9 +408,18 @@ export default function InsideVortexSection() {
                               {credit.role}
                             </span>
                           </div>
+                          {isEditMode && (
+                            <span className="hidden group-hover/credit:flex gap-1 shrink-0">
+                              <button onClick={() => handleEditCredit(idx)} className="p-0.5 bg-cyan-600/80 rounded hover:bg-cyan-500"><Edit2 size={10} /></button>
+                              <button onClick={() => handleDeleteCredit(idx)} className="p-0.5 bg-red-600/80 rounded hover:bg-red-500"><Trash2 size={10} /></button>
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
+                    {isEditMode && (
+                      <button onClick={handleAddCredit} className="nasa-btn text-sm flex items-center gap-2 mx-auto mt-6"><Plus size={14} /> Add Credit</button>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -402,6 +427,20 @@ export default function InsideVortexSection() {
           </div>
         </div>
       </section>
+
+      {/* Modals */}
+      <ItemFormModal isOpen={!!catModal} onClose={() => setCatModal(null)}
+        title={catModal?.mode === "edit" ? "Edit Category" : "Add Category"}
+        fields={CAT_FIELDS} initialValues={catModal?.init ?? {}} onSubmit={handleCatSubmit}
+      />
+      <ItemFormModal isOpen={!!itemModal} onClose={() => setItemModal(null)}
+        title={itemModal?.mode === "edit" ? "Edit Item" : "Add Item"}
+        fields={ITEM_FIELDS} initialValues={itemModal?.init ?? {}} onSubmit={handleItemSubmit}
+      />
+      <ItemFormModal isOpen={!!creditModal} onClose={() => setCreditModal(null)}
+        title={creditModal?.mode === "edit" ? "Edit Credit" : "Add Credit"}
+        fields={CREDIT_FIELDS} initialValues={creditModal?.init ?? {}} onSubmit={handleCreditSubmit}
+      />
     </div>
   );
 }

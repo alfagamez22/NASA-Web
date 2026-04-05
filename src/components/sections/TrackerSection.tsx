@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import TechCard from "@/components/ui/TechCard";
 import { TECH_TYPES } from "@/lib/constants";
-import { getSectionsByParent } from "@/lib/content-service";
+import { getSectionsByParentLS } from "@/lib/data-store";
 import ContentSectionCard from "@/components/content/ContentSectionCard";
 import MediaEmbed from "@/components/content/MediaEmbed";
 
@@ -21,7 +21,7 @@ const ASGARD_SLIDES_URL = "https://docs.google.com/presentation/d/1rDwQYbOKt2HN9
  * as Know More (rich text, embeds, slides, etc.).
  */
 export default function TrackerSection() {
-  const trackerSections = getSectionsByParent("tracker");
+  const trackerSections = getSectionsByParentLS("tracker");
 
   return (
     <motion.div

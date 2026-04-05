@@ -1,81 +1,26 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { Plus, Edit2, Trash2 } from "lucide-react";
 import { TEAM_EMAIL } from "@/lib/constants";
+import { getTeamSpine, saveTeamSpine, getTeams, saveTeams, type SpineMember, type TeamData, type TeamMemberData } from "@/lib/data-store";
+import { useEditMode } from "@/lib/edit-mode-context";
+import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
-// ─── Org Data ────────────────────────────────────────────────────────────────
-
-const SPINE = [
-  {
-    name: "Yoke Kong Seow",
-    role: "Network Technical",
-    img: "https://picsum.photos/seed/yoke/400/500",
-  },
-  {
-    name: "Cristino Crisostomo",
-    role: "Network Operations and Assurance",
-    img: "https://picsum.photos/seed/cristino/400/500",
-  },
-  {
-    name: "Matthew Slee",
-    role: "Tier 1 Operations",
-    img: "https://picsum.photos/seed/matthew/400/500",
-  },
-  {
-    name: "Aliver Dimacisil",
-    role: "Head — DSOC",
-    img: "https://picsum.photos/seed/aliver/400/500",
-  },
-  {
-    name: "Neil Chester Soria",
-    role: "Head — NASA",
-    img: "https://picsum.photos/seed/neil/400/500",
-  },
+const SPINE_FIELDS: FormField[] = [
+  { key: "name", label: "Name", required: true },
+  { key: "role", label: "Role / Title", required: true },
+  { key: "img", label: "Image URL", required: true, placeholder: "https://picsum.photos/seed/name/400/500" },
 ];
 
-const TEAMS = [
-  {
-    id: 1,
-    label: "NASA Team 1",
-    head: { name: "Girlie Quitalig", img: "https://picsum.photos/seed/girlie/400/500" },
-    tls: [
-      { name: "Catherine Eustaquio", img: "https://picsum.photos/seed/catherine/400/500" },
-      { name: "Jerome Quirona", img: "https://picsum.photos/seed/jerome/400/500" },
-    ],
-    atls: [
-      { name: "Charisa Laguna", img: "https://picsum.photos/seed/charisa/400/500" },
-      { name: "Charisse Ortiz Luis-Formoso", img: "https://picsum.photos/seed/charisse/400/500" },
-    ],
-    engineers: [
-      { name: "Rose Marie Arvesu Bacalzo", img: "https://picsum.photos/seed/rose/400/500" },
-      { name: "Precious Regina Breto", img: "https://picsum.photos/seed/precious/400/500" },
-      { name: "Ma. Ellarie Ann Alday", img: "https://picsum.photos/seed/ellarie/400/500" },
-      { name: "Jose H. Montenegro V", img: "https://picsum.photos/seed/jose/400/500" },
-      { name: "Mc Genesis Blazo", img: "https://picsum.photos/seed/genesis/400/500" },
-      { name: "Ronico Cunanan", img: "https://picsum.photos/seed/ronico/400/500" },
-    ],
-  },
-  {
-    id: 2,
-    label: "NASA Team 2",
-    head: { name: "Armilene Marquez", img: "https://picsum.photos/seed/armilene/400/500" },
-    tls: [
-      { name: "Gilbert Reyes", img: "https://picsum.photos/seed/gilbert/400/500" },
-      { name: "Fernand Loretizo", img: "https://picsum.photos/seed/fernand/400/500" },
-    ],
-    atls: [
-      { name: "Mary Grace Bautista", img: "https://picsum.photos/seed/marygrace/400/500" },
-      { name: "Laarni Marquez", img: "https://picsum.photos/seed/laarni/400/500" },
-    ],
-    engineers: [
-      { name: "Danilo Ricafrente", img: "https://picsum.photos/seed/danilo/400/500" },
-      { name: "Jeizel Concepcion", img: "https://picsum.photos/seed/jeizel/400/500" },
-      { name: "Bryan Gervacio Bolivar", img: "https://picsum.photos/seed/bryan/400/500" },
-      { name: "Rachel Ann Caigas", img: "https://picsum.photos/seed/rachel/400/500" },
-      { name: "Fressie Ritz Gosilatar", img: "https://picsum.photos/seed/fressie/400/500" },
-      { name: "Mary Grace Silfavan", img: "https://picsum.photos/seed/silfavan/400/500" },
-    ],
-  },
+const MEMBER_FIELDS: FormField[] = [
+  { key: "name", label: "Name", required: true },
+  { key: "img", label: "Image URL", required: true, placeholder: "https://picsum.photos/seed/name/400/500" },
+];
+
+const TEAM_FIELDS: FormField[] = [
+  { key: "label", label: "Team Name", required: true, placeholder: "e.g. NASA Team 3" },
 ];
 
 // ─── Shared connector ────────────────────────────────────────────────────────
@@ -92,15 +37,27 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
+// ─── Edit overlay helper ─────────────────────────────────────────────────────
+
+function EditOverlay({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div className="absolute top-2 right-2 z-10 hidden group-hover:flex gap-1">
+      <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1 bg-cyan-600/80 rounded hover:bg-cyan-500 transition"><Edit2 size={12} /></button>
+      <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 bg-red-600/80 rounded hover:bg-red-500 transition"><Trash2 size={12} /></button>
+    </div>
+  );
+}
+
 // ─── Card components ─────────────────────────────────────────────────────────
 
 /** Top-of-spine portrait card — large */
-function SpineCard({ name, role, img }: { name: string; role: string; img: string }) {
+function SpineCard({ name, role, img, isEditMode, onEdit, onDelete }: { name: string; role: string; img: string; isEditMode?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   return (
     <div
       className="relative overflow-hidden rounded-xl w-64 flex-shrink-0 group"
       style={{ border: "1px solid rgba(0,255,255,0.25)" }}
     >
+      {isEditMode && onEdit && onDelete && <EditOverlay onEdit={onEdit} onDelete={onDelete} />}
       <div className="h-56 overflow-hidden">
         <img
           src={img}
@@ -120,7 +77,7 @@ function SpineCard({ name, role, img }: { name: string; role: string; img: strin
 }
 
 /** Team Head — full-width tall portrait card */
-function TeamHeadCard({ name, img }: { name: string; img: string }) {
+function TeamHeadCard({ name, img, isEditMode, onEdit, onDelete }: { name: string; img: string; isEditMode?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   return (
     <div
       className="relative overflow-hidden rounded-xl w-full group"
@@ -129,6 +86,7 @@ function TeamHeadCard({ name, img }: { name: string; img: string }) {
         boxShadow: "0 0 28px rgba(0,255,255,0.1)",
       }}
     >
+      {isEditMode && onEdit && onDelete && <EditOverlay onEdit={onEdit} onDelete={onDelete} />}
       <div className="h-72 overflow-hidden">
         <img
           src={img}
@@ -158,7 +116,7 @@ function TeamHeadCard({ name, img }: { name: string; img: string }) {
 }
 
 /** TL / ATL portrait card — 2-col grid */
-function RoleCard({ name, badge, img }: { name: string; badge: "TL" | "ATL"; img: string }) {
+function RoleCard({ name, badge, img, isEditMode, onEdit, onDelete }: { name: string; badge: "TL" | "ATL"; img: string; isEditMode?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   const isTL = badge === "TL";
   return (
     <div
@@ -167,6 +125,7 @@ function RoleCard({ name, badge, img }: { name: string; badge: "TL" | "ATL"; img
         border: `1px solid ${isTL ? "rgba(0,255,255,0.3)" : "rgba(255,191,0,0.25)"}`,
       }}
     >
+      {isEditMode && onEdit && onDelete && <EditOverlay onEdit={onEdit} onDelete={onDelete} />}
       <div className="h-52 overflow-hidden">
         <img
           src={img}
@@ -196,12 +155,13 @@ function RoleCard({ name, badge, img }: { name: string; badge: "TL" | "ATL"; img
 }
 
 /** Engineer portrait card — 3-col grid */
-function EngrCard({ name, img }: { name: string; img: string }) {
+function EngrCard({ name, img, isEditMode, onEdit, onDelete }: { name: string; img: string; isEditMode?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   return (
     <div
       className="relative overflow-hidden rounded-lg group"
       style={{ border: "1px solid rgba(0,255,255,0.15)" }}
     >
+      {isEditMode && onEdit && onDelete && <EditOverlay onEdit={onEdit} onDelete={onDelete} />}
       <div className="h-40 overflow-hidden">
         <img
           src={img}
@@ -225,7 +185,17 @@ function EngrCard({ name, img }: { name: string; img: string }) {
 
 // ─── Team Column ─────────────────────────────────────────────────────────────
 
-function TeamColumn({ team }: { team: (typeof TEAMS)[number] }) {
+function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMember }: {
+  team: TeamData;
+  isEditMode?: boolean;
+  onEditMember?: (teamId: number, role: string, idx: number, member: TeamMemberData) => void;
+  onDeleteMember?: (teamId: number, role: string, idx: number) => void;
+  onAddMember?: (teamId: number, role: string) => void;
+}) {
+  const editProps = (role: string, idx: number, m: TeamMemberData) => isEditMode ? {
+    isEditMode, onEdit: () => onEditMember?.(team.id, role, idx, m), onDelete: () => onDeleteMember?.(team.id, role, idx),
+  } : {};
+
   return (
     <div className="flex flex-col items-center w-full">
       {/* Team label */}
@@ -240,35 +210,46 @@ function TeamColumn({ team }: { team: (typeof TEAMS)[number] }) {
       </div>
 
       {/* Team Head */}
-      <TeamHeadCard name={team.head.name} img={team.head.img} />
+      <TeamHeadCard name={team.head.name} img={team.head.img}
+        {...(isEditMode ? { isEditMode, onEdit: () => onEditMember?.(team.id, "head", 0, team.head), onDelete: () => onDeleteMember?.(team.id, "head", 0) } : {})}
+      />
 
       <VLine h="h-8" />
 
       {/* TL */}
       <SectionLabel label="TL — Team Leads" />
       <div className="grid grid-cols-2 gap-2 w-full mb-6">
-        {team.tls.map((p) => (
-          <RoleCard key={p.name} name={p.name} badge="TL" img={p.img} />
+        {team.tls.map((p, i) => (
+          <RoleCard key={p.name} name={p.name} badge="TL" img={p.img} {...editProps("tls", i, p)} />
         ))}
       </div>
+      {isEditMode && (
+        <button onClick={() => onAddMember?.(team.id, "tls")} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={12} /> Add TL</button>
+      )}
 
       {/* ATL */}
       <SectionLabel label="ATL — Asst. Team Leads" />
       <div className="grid grid-cols-2 gap-2 w-full">
-        {team.atls.map((p) => (
-          <RoleCard key={p.name} name={p.name} badge="ATL" img={p.img} />
+        {team.atls.map((p, i) => (
+          <RoleCard key={p.name} name={p.name} badge="ATL" img={p.img} {...editProps("atls", i, p)} />
         ))}
       </div>
+      {isEditMode && (
+        <button onClick={() => onAddMember?.(team.id, "atls")} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={12} /> Add ATL</button>
+      )}
 
       <VLine h="h-8" />
 
       {/* Engineers */}
       <SectionLabel label="Engineers" />
       <div className="grid grid-cols-3 gap-2 w-full">
-        {team.engineers.map((e) => (
-          <EngrCard key={e.name} name={e.name} img={e.img} />
+        {team.engineers.map((e, i) => (
+          <EngrCard key={e.name} name={e.name} img={e.img} {...editProps("engineers", i, e)} />
         ))}
       </div>
+      {isEditMode && (
+        <button onClick={() => onAddMember?.(team.id, "engineers")} className="nasa-btn text-xs mt-4 flex items-center gap-1"><Plus size={12} /> Add Engineer</button>
+      )}
     </div>
   );
 }
@@ -276,6 +257,82 @@ function TeamColumn({ team }: { team: (typeof TEAMS)[number] }) {
 // ─── Main Export ─────────────────────────────────────────────────────────────
 
 export default function TeamSection() {
+  const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  const spine = getTeamSpine();
+  const teams = getTeams();
+  void refreshKey;
+
+  // ── Spine CRUD ─────────────────────────────────────────────────────────
+  const [spineModal, setSpineModal] = useState<{ mode: "add" | "edit"; idx?: number; init?: Record<string, string> } | null>(null);
+
+  function handleAddSpine() { setSpineModal({ mode: "add" }); }
+  function handleEditSpine(idx: number, m: SpineMember) { setSpineModal({ mode: "edit", idx, init: { name: m.name, role: m.role, img: m.img } }); }
+  function handleDeleteSpine(idx: number) {
+    const s = [...spine]; s.splice(idx, 1); saveTeamSpine(s);
+    markChanged(); notifyChange("team", "delete", "spine member"); refresh();
+  }
+  function handleSpineSubmit(vals: Record<string, string>) {
+    const s = [...spine];
+    const member: SpineMember = { name: vals.name, role: vals.role, img: vals.img };
+    if (spineModal?.mode === "edit" && spineModal.idx != null) { s[spineModal.idx] = member; } else { s.push(member); }
+    saveTeamSpine(s); markChanged(); notifyChange("team", spineModal?.mode === "edit" ? "edit" : "add", vals.name); setSpineModal(null); refresh();
+  }
+
+  // ── Team CRUD ──────────────────────────────────────────────────────────
+  const [teamModal, setTeamModal] = useState<{ mode: "add" | "edit"; teamIdx?: number; init?: Record<string, string> } | null>(null);
+
+  function handleAddTeam() { setTeamModal({ mode: "add" }); }
+  function handleEditTeam(idx: number) { setTeamModal({ mode: "edit", teamIdx: idx, init: { label: teams[idx].label } }); }
+  function handleDeleteTeam(idx: number) {
+    const t = [...teams]; t.splice(idx, 1); saveTeams(t);
+    markChanged(); notifyChange("team", "delete", "team"); refresh();
+  }
+  function handleTeamSubmit(vals: Record<string, string>) {
+    const t = [...teams];
+    if (teamModal?.mode === "edit" && teamModal.teamIdx != null) {
+      t[teamModal.teamIdx] = { ...t[teamModal.teamIdx], label: vals.label };
+    } else {
+      t.push({ id: Date.now(), label: vals.label, head: { name: "New Head", img: "https://picsum.photos/seed/new/400/500" }, tls: [], atls: [], engineers: [] });
+    }
+    saveTeams(t); markChanged(); notifyChange("team", teamModal?.mode === "edit" ? "edit" : "add", vals.label); setTeamModal(null); refresh();
+  }
+
+  // ── Member CRUD ────────────────────────────────────────────────────────
+  const [memberModal, setMemberModal] = useState<{ mode: "add" | "edit"; teamId: number; role: string; idx?: number; init?: Record<string, string> } | null>(null);
+
+  function handleEditMember(teamId: number, role: string, idx: number, m: TeamMemberData) {
+    setMemberModal({ mode: "edit", teamId, role, idx, init: { name: m.name, img: m.img } });
+  }
+  function handleDeleteMember(teamId: number, role: string, idx: number) {
+    const t = teams.map((tm) => {
+      if (tm.id !== teamId) return tm;
+      if (role === "head") { return { ...tm, head: { name: "(vacant)", img: "https://picsum.photos/seed/vacant/400/500" } }; }
+      const arr = [...(tm as unknown as Record<string, unknown>)[role] as TeamMemberData[]];
+      arr.splice(idx, 1);
+      return { ...tm, [role]: arr } as TeamData;
+    });
+    saveTeams(t); markChanged(); notifyChange("team", "delete", "team member"); refresh();
+  }
+  function handleAddMember(teamId: number, role: string) {
+    setMemberModal({ mode: "add", teamId, role });
+  }
+  function handleMemberSubmit(vals: Record<string, string>) {
+    if (!memberModal) return;
+    const { teamId, role, mode, idx } = memberModal;
+    const member: TeamMemberData = { name: vals.name, img: vals.img };
+    const t = teams.map((tm) => {
+      if (tm.id !== teamId) return tm;
+      if (role === "head") { return { ...tm, head: member }; }
+      const arr = [...(tm as unknown as Record<string, unknown>)[role] as TeamMemberData[]];
+      if (mode === "edit" && idx != null) { arr[idx] = member; } else { arr.push(member); }
+      return { ...tm, [role]: arr } as TeamData;
+    });
+    saveTeams(t); markChanged(); notifyChange("team", mode === "edit" ? "edit" : "add", vals.name); setMemberModal(null); refresh();
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -294,46 +351,48 @@ export default function TeamSection() {
       <div className="flex flex-col items-center">
 
         {/* ── Central Spine (vertical chain) ──────────────────────────────── */}
-        {SPINE.map((person) => (
-          <div key={person.name} className="flex flex-col items-center">
-            <SpineCard {...person} />
-            {/* Connector line below every node (last one feeds the T-branch) */}
+        {spine.map((person, idx) => (
+          <div key={person.name + idx} className="flex flex-col items-center">
+            <SpineCard {...person}
+              isEditMode={isEditMode}
+              onEdit={() => handleEditSpine(idx, person)}
+              onDelete={() => handleDeleteSpine(idx)}
+            />
             <VLine h="h-10" />
           </div>
         ))}
+        {isEditMode && (
+          <button onClick={handleAddSpine} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={14} /> Add Spine Member</button>
+        )}
 
-        {/* ── T-Branch + Team columns ───────────────────────────────────────
-            max-w-5xl = 1024px → each team half = 512px
-            left: 25% = 256px = center of Team 1 column  ✓
-            right: 25% = 256px = center of Team 2 column ✓
-            The VLine from Neil feeds into the exact midpoint (512px)  ✓
-        ─────────────────────────────────────────────────────────────────── */}
+        {/* ── T-Branch + Team columns ─────────────────────────────────────── */}
         <div className="relative w-full max-w-5xl">
-          {/* Horizontal bar: Team 1 center → Team 2 center */}
-          <div
-            className="absolute top-0 h-px bg-cyan-500/30"
-            style={{ left: "25%", right: "25%" }}
-          />
-          {/* Vertical drops: T-bar → each Team Head label */}
-          <div
-            className="absolute h-10 w-px bg-cyan-500/30"
-            style={{ top: 0, left: "25%", transform: "translateX(-50%)" }}
-          />
-          <div
-            className="absolute h-10 w-px bg-cyan-500/30"
-            style={{ top: 0, right: "25%", transform: "translateX(50%)" }}
-          />
+          {/* Horizontal bar */}
+          <div className="absolute top-0 h-px bg-cyan-500/30" style={{ left: "25%", right: "25%" }} />
+          <div className="absolute h-10 w-px bg-cyan-500/30" style={{ top: 0, left: "25%", transform: "translateX(-50%)" }} />
+          <div className="absolute h-10 w-px bg-cyan-500/30" style={{ top: 0, right: "25%", transform: "translateX(50%)" }} />
 
           {/* Two team columns */}
           <div className="grid grid-cols-2">
-            {TEAMS.map((team) => (
+            {teams.map((team, tIdx) => (
               <div key={team.id} className="flex flex-col items-center pt-10 px-4">
-                <TeamColumn team={team} />
+                {isEditMode && (
+                  <div className="flex gap-2 mb-2">
+                    <button onClick={() => handleEditTeam(tIdx)} className="nasa-btn text-xs flex items-center gap-1"><Edit2 size={12} /> Rename</button>
+                    <button onClick={() => handleDeleteTeam(tIdx)} className="p-1.5 bg-red-600/60 rounded hover:bg-red-500 text-xs flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  </div>
+                )}
+                <TeamColumn team={team} isEditMode={isEditMode}
+                  onEditMember={handleEditMember} onDeleteMember={handleDeleteMember} onAddMember={handleAddMember}
+                />
               </div>
             ))}
           </div>
         </div>
 
+        {isEditMode && (
+          <button onClick={handleAddTeam} className="nasa-btn text-sm mt-8 flex items-center gap-2"><Plus size={16} /> Add Team</button>
+        )}
       </div>
 
       {/* ── Contact Footer ────────────────────────────────────────────────── */}
@@ -348,6 +407,20 @@ export default function TeamSection() {
           Contact: {TEAM_EMAIL}
         </p>
       </div>
+
+      {/* Modals */}
+      <ItemFormModal isOpen={!!spineModal} onClose={() => setSpineModal(null)}
+        title={spineModal?.mode === "edit" ? "Edit Spine Member" : "Add Spine Member"}
+        fields={SPINE_FIELDS} initialValues={spineModal?.init ?? {}} onSubmit={handleSpineSubmit}
+      />
+      <ItemFormModal isOpen={!!teamModal} onClose={() => setTeamModal(null)}
+        title={teamModal?.mode === "edit" ? "Rename Team" : "Add Team"}
+        fields={TEAM_FIELDS} initialValues={teamModal?.init ?? {}} onSubmit={handleTeamSubmit}
+      />
+      <ItemFormModal isOpen={!!memberModal} onClose={() => setMemberModal(null)}
+        title={memberModal?.mode === "edit" ? "Edit Member" : "Add Member"}
+        fields={MEMBER_FIELDS} initialValues={memberModal?.init ?? {}} onSubmit={handleMemberSubmit}
+      />
     </motion.div>
   );
 }

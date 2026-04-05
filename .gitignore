@@ -28,3 +28,5 @@ out/
 
 # OS
 Thumbs.db
+
+/src/generated/prisma

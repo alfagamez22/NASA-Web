@@ -1,0 +1,345 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Authentication & Authorization ──────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  displayName  String   @map("display_name")
+  role         UserRole @default(viewer)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  sessions      Session[]
+  notifications Notification[]
+  viewerPerms   ViewerPermission[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  admin
+  editor
+  viewer
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  token        String   @unique
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("sessions")
+}
+
+model ViewerPermission {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  allowedPages String[] @map("allowed_pages")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@map("viewer_permissions")
+}
+
+// ─── Home Page — Tool Categories & Tools ─────────────────────────────────────
+
+model ToolCategory {
+  id         String @id @default(cuid())
+  slug       String @unique
+  title      String
+  parentSlug String @map("parent_slug")
+  order      Int    @default(0)
+
+  tools Tool[]
+
+  @@index([parentSlug])
+  @@map("tool_categories")
+}
+
+model Tool {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  title        String
+  url          String
+  icon         String  @default("Monitor")
+  description  String  @default("")
+  categorySlug String  @map("category_slug")
+  order        Int     @default(0)
+
+  category ToolCategory @relation(fields: [categorySlug], references: [slug], onDelete: Cascade)
+
+  @@index([categorySlug])
+  @@map("tools")
+}
+
+// ─── Content Sections (Know More, Reports, Tracker) ──────────────────────────
+
+model ContentSection {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  parentSlug  String  @map("parent_slug")
+  description String? @default("")
+  author      String?
+  authorUrl   String? @map("author_url")
+  content     String?
+  colSpan     Int     @default(1) @map("col_span")
+  order       Int     @default(0)
+  buttonLabel String? @map("button_label")
+  buttonUrl   String? @map("button_url")
+
+  media  SectionMedia[]
+  links  SectionLink[]
+  slides SlideItem[]
+
+  @@index([parentSlug])
+  @@map("content_sections")
+}
+
+model SectionMedia {
+  id        String    @id @default(cuid())
+  sectionId String    @map("section_id")
+  type      MediaType
+  url       String?
+  gurl      String?
+  yurl      String?
+  alt       String?
+  caption   String?
+  order     Int       @default(0)
+
+  section ContentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@map("section_media")
+}
+
+enum MediaType {
+  google_slides @map("google-slides")
+  youtube
+  image
+  iframe
+}
+
+model SectionLink {
+  id        String @id @default(cuid())
+  sectionId String @map("section_id")
+  label     String
+  url       String
+  order     Int    @default(0)
+
+  section ContentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@map("section_links")
+}
+
+model SlideItem {
+  id              String  @id @default(cuid())
+  slug            String  @unique
+  title           String  @default("")
+  sectionId       String  @map("section_id")
+  backgroundImage String? @map("background_image")
+  layout          String  @default("single")
+  order           Int     @default(0)
+
+  section ContentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  columns SlideColumn[]
+
+  @@index([sectionId])
+  @@map("slide_items")
+}
+
+model SlideColumn {
+  id      String  @id @default(cuid())
+  slideId String  @map("slide_id")
+  type    String  @default("text") // "text" | "media"
+  content String? // HTML text content
+  order   Int     @default(0)
+
+  // Embedded media fields (if type = "media")
+  mediaType String? @map("media_type")
+  mediaUrl  String? @map("media_url")
+  mediaGurl String? @map("media_gurl")
+  mediaYurl String? @map("media_yurl")
+
+  slide SlideItem @relation(fields: [slideId], references: [id], onDelete: Cascade)
+
+  @@index([slideId])
+  @@map("slide_columns")
+}
+
+// ─── Modules (Top-level Navigation Entities) ─────────────────────────────────
+
+model Module {
+  id       String @id @default(cuid())
+  slug     String @unique
+  title    String
+  href     String
+  display  String
+  order    Int    @default(0)
+
+  children String[] // Slugs of child categories/sections
+  subNav   Json?    @map("sub_nav") // [{ display, href }]
+
+  @@map("modules")
+}
+
+// ─── Team Page — Spine & Teams ───────────────────────────────────────────────
+
+model SpineMember {
+  id    String @id @default(cuid())
+  name  String
+  role  String
+  img   String @default("/placeholder.jpg")
+  order Int    @default(0)
+
+  @@map("spine_members")
+}
+
+model Team {
+  id    String @id @default(cuid())
+  seqId Int    @unique @map("seq_id") // Original numeric ID (1, 2, etc.)
+  label String
+
+  members TeamMember[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String         @id @default(cuid())
+  teamId   String         @map("team_id")
+  name     String
+  img      String         @default("/placeholder.jpg")
+  role     TeamMemberRole
+  order    Int            @default(0)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("team_members")
+}
+
+enum TeamMemberRole {
+  head
+  tl
+  atl
+  engineer
+}
+
+// ─── Team Drive ──────────────────────────────────────────────────────────────
+
+model TeamDriveCategory {
+  id    String @id @default(cuid())
+  title String
+  order Int    @default(0)
+
+  items TeamDriveItem[]
+
+  @@map("team_drive_categories")
+}
+
+model TeamDriveItem {
+  id         String @id @default(cuid())
+  categoryId String @map("category_id")
+  label      String
+  url        String
+  urlType    String @default("url") @map("url_type") // "url" | "gurl" | "yurl"
+  order      Int    @default(0)
+
+  category TeamDriveCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@map("team_drive_items")
+}
+
+// ─── Inside Vortex Page ──────────────────────────────────────────────────────
+
+model VortexCategory {
+  id    String @id @default(cuid())
+  title String
+  order Int    @default(0)
+
+  items VortexItem[]
+
+  @@map("vortex_categories")
+}
+
+model VortexItem {
+  id         String @id @default(cuid())
+  categoryId String @map("category_id")
+  content    String // The text item content
+  order      Int    @default(0)
+
+  category VortexCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@map("vortex_items")
+}
+
+model VortexCredit {
+  id    String @id @default(cuid())
+  name  String
+  role  String
+  order Int    @default(0)
+
+  @@map("vortex_credits")
+}
+
+model VortexConfig {
+  id            String @id @default("singleton")
+  heroTitle     String @default("WHAT'S INSIDE THE VORTEX") @map("hero_title")
+  heroSubtitle  String @default("") @map("hero_subtitle")
+  bgType        String @default("video") @map("bg_type")
+  bgValue       String @default("/laserflow.webm") @map("bg_value")
+
+  @@map("vortex_config")
+}
+
+// ─── Report Slides (Report Page) ─────────────────────────────────────────────
+
+model ReportSlide {
+  id      String @id @default(cuid())
+  label   String
+  gurl    String
+  colSpan Int    @default(1) @map("col_span")
+  order   Int    @default(0)
+
+  @@map("report_slides")
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+model Notification {
+  id         String   @id @default(cuid())
+  page       String
+  changeType String   @map("change_type") // "add" | "edit" | "delete"
+  itemName   String   @map("item_name")
+  username   String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}

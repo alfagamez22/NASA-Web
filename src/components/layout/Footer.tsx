@@ -23,10 +23,10 @@ export default function Footer() {
               color: "var(--accent-color)",
             }}
           >
-            SCC
+            NASA
           </div>
           <span className="font-bold" style={{ color: "#ffffff" }}>
-            SERVICE COMMAND CENTER
+            NETWORK OPERATIONS & ASSURANCE CENTER
           </span>
         </div>
         <div className="flex gap-4" style={{ color: "#ffffff" }}>

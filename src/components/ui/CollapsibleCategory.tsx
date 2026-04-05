@@ -1,13 +1,17 @@
 "use client";
 
-import type { ToolCategory } from "@/lib/types";
+import type { ToolCategory, ToolItem } from "@/lib/types";
+import { Edit2, Trash2 } from "lucide-react";
 import ToolCard from "./ToolCard";
 
 interface CollapsibleCategoryProps {
   category: ToolCategory;
+  isEditMode?: boolean;
+  onEditTool?: (tool: ToolItem) => void;
+  onDeleteTool?: (tool: ToolItem) => void;
 }
 
-export default function CollapsibleCategory({ category }: CollapsibleCategoryProps) {
+export default function CollapsibleCategory({ category, isEditMode, onEditTool, onDeleteTool }: CollapsibleCategoryProps) {
   return (
     <div
       className="relative flex flex-col h-fit transition-all duration-500 bg-nasa-blue/5 border-b md:border-b-0 md:border-r border-nasa-blue/20 last:border-r-0 group"
@@ -43,8 +47,26 @@ export default function CollapsibleCategory({ category }: CollapsibleCategoryPro
             .map((tool) => (
               <div
                 key={tool.slug}
-                className="transform transition-all duration-300 hover:scale-[1.02]"
+                className="relative transform transition-all duration-300 hover:scale-[1.02] group/tool"
               >
+                {isEditMode && (
+                  <div className="absolute -top-1 -right-1 z-30 flex gap-0.5 opacity-0 group-hover/tool:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEditTool?.(tool); }}
+                      className="p-1 bg-black/80 text-cyan-400 hover:text-white rounded"
+                      title="Edit Tool"
+                    >
+                      <Edit2 size={10} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteTool?.(tool); }}
+                      className="p-1 bg-black/80 text-red-400 hover:text-red-300 rounded"
+                      title="Delete Tool"
+                    >
+                      <Trash2 size={10} />
+                    </button>
+                  </div>
+                )}
                 <ToolCard tool={tool} />
               </div>
             ))}
