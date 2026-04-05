@@ -145,7 +145,7 @@ export default function HomeSection() {
             {categories.map((category) => (
               <div key={category.slug} className="relative group/cat flex-1 min-w-0">
                 {isEditMode && (
-                  <div className="absolute -top-2 right-1 z-30 flex gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity">
+                  <div className="absolute top-1 right-1 z-30 flex gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity">
                     <button
                       onClick={() => { setEditingCategory(category); }}
                       className="p-1 bg-black/70 text-cyan-400 hover:text-white rounded"
@@ -178,6 +178,7 @@ export default function HomeSection() {
               </div>
             ))}
           </div>
+
         </div>
       </div>
 
