@@ -31,3 +31,5 @@ out/
 Thumbs.db
 
 /src/generated/prisma
+.vercel
+.env*.local
