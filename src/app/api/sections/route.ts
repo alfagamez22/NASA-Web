@@ -72,6 +72,13 @@ export async function POST(req: NextRequest) {
           order: i,
         })),
       } : undefined,
+      links: body.links?.length ? {
+        create: body.links.map((l: Record<string, string>, i: number) => ({
+          label: l.label ?? "",
+          url: l.url ?? "",
+          order: i,
+        })),
+      } : undefined,
       slides: body.slides?.length ? {
         create: body.slides.map((s: Record<string, unknown>, si: number) => ({
           slug: (s.slug as string) || `slide-${Date.now()}-${si}`,
@@ -94,6 +101,7 @@ export async function POST(req: NextRequest) {
     },
     include: {
       media: { orderBy: { order: "asc" } },
+      links: { orderBy: { order: "asc" } },
       slides: { orderBy: { order: "asc" }, include: { columns: { orderBy: { order: "asc" } } } },
     },
   });
@@ -128,6 +136,21 @@ export async function PUT(req: NextRequest) {
           yurl: m.yurl ?? null,
           alt: m.alt ?? null,
           caption: m.caption ?? null,
+          order: i,
+        })),
+      });
+    }
+  }
+
+  // Replace links if provided
+  if (links !== undefined) {
+    await prisma.sectionLink.deleteMany({ where: { sectionId: section.id } });
+    if (links?.length) {
+      await prisma.sectionLink.createMany({
+        data: links.map((l: Record<string, string>, i: number) => ({
+          sectionId: section.id,
+          label: l.label ?? "",
+          url: l.url ?? "",
           order: i,
         })),
       });

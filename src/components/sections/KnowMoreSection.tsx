@@ -19,10 +19,17 @@ const SECTION_FIELDS: FormField[] = [
   { key: "mediaType", label: "Media Type", type: "select", options: [
     { value: "google-slides", label: "Google Slides (gurl)" },
     { value: "youtube", label: "YouTube (yurl)" },
-    { value: "image", label: "Image (url)" },
+    { value: "image", label: "Image" },
     { value: "iframe", label: "iFrame (url)" },
   ]},
-  { key: "mediaUrl", label: "Media URL", type: "url", placeholder: "Paste gurl/yurl/url here" },
+  {
+    key: "mediaUrl",
+    label: "Media URL / Image",
+    type: "url",
+    placeholder: "Paste gurl/yurl/url here",
+    conditionalImage: { watchKey: "mediaType", whenValue: "image" },
+  },
+  { key: "links", label: "External Links", type: "links" },
   { key: "buttonLabel", label: "Button Label", placeholder: "e.g. VIEW PRESENTATION" },
   { key: "buttonUrl", label: "Button URL", type: "url", placeholder: "https://..." },
 ];
@@ -55,6 +62,7 @@ export default function KnowMoreSection() {
       content: s.content || "",
       mediaType: media?.type || "",
       mediaUrl: media?.gurl || media?.yurl || media?.url || "",
+      links: s.links?.length ? JSON.stringify(s.links.map((l) => ({ label: l.label, url: l.url }))) : "[]",
       buttonLabel: s.buttonLabel || "",
       buttonUrl: s.buttonUrl || "",
     };
@@ -72,6 +80,8 @@ export default function KnowMoreSection() {
 
   async function handleAdd(values: Record<string, string>) {
     const slug = generateSlug();
+    let parsedLinks: { label: string; url: string }[] = [];
+    try { parsedLinks = values.links ? JSON.parse(values.links) : []; } catch { parsedLinks = []; }
     await fetch("/api/sections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -80,6 +90,7 @@ export default function KnowMoreSection() {
         author: values.author || undefined, authorUrl: values.authorUrl || undefined,
         description: values.description || undefined, content: values.content || undefined,
         media: buildMedia(values),
+        links: parsedLinks.filter((l) => l.label && l.url),
         buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
       }),
     });
@@ -90,6 +101,8 @@ export default function KnowMoreSection() {
 
   async function handleEdit(values: Record<string, string>) {
     if (!editingSection) return;
+    let parsedLinks: { label: string; url: string }[] = [];
+    try { parsedLinks = values.links ? JSON.parse(values.links) : []; } catch { parsedLinks = []; }
     await fetch("/api/sections", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -99,6 +112,7 @@ export default function KnowMoreSection() {
         authorUrl: values.authorUrl || undefined, description: values.description || undefined,
         content: values.content || undefined,
         media: buildMedia(values),
+        links: parsedLinks.filter((l) => l.label && l.url),
         buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
       }),
     });

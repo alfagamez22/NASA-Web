@@ -16,9 +16,15 @@ const SECTION_FIELDS: FormField[] = [
   { key: "mediaType", label: "Slide Type", type: "select", options: [
     { value: "google-slides", label: "Google Slides (gurl)" },
     { value: "iframe", label: "iFrame (url)" },
-    { value: "image", label: "Image (url)" },
+    { value: "image", label: "Image" },
   ]},
-  { key: "mediaUrl", label: "Slide URL", type: "url", placeholder: "Paste gurl/url here" },
+  {
+    key: "mediaUrl",
+    label: "Slide URL / Image",
+    type: "url",
+    placeholder: "Paste gurl/url here",
+    conditionalImage: { watchKey: "mediaType", whenValue: "image" },
+  },
   { key: "description", label: "Description", type: "textarea", placeholder: "Optional description" },
 ];
 

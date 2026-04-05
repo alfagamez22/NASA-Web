@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import ImageUpload from "./ImageUpload";
 
 export interface FormField {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "select" | "url" | "image";
+  type?: "text" | "textarea" | "select" | "url" | "image" | "links";
   options?: { value: string; label: string }[];
   placeholder?: string;
   required?: boolean;
+  /** When set, renders as ImageUpload instead of URL input when the watched field equals the given value */
+  conditionalImage?: { watchKey: string; whenValue: string };
 }
 
 interface ItemFormModalProps {
@@ -24,12 +26,26 @@ interface ItemFormModalProps {
 
 export default function ItemFormModal({ isOpen, onClose, title, fields, initialValues, onSubmit }: ItemFormModalProps) {
   const [values, setValues] = useState<Record<string, string>>({});
+  // Separate state for "links" fields — array of {label, url} pairs
+  const [linksValues, setLinksValues] = useState<Record<string, { label: string; url: string }[]>>({});
 
   useEffect(() => {
     if (isOpen) {
       const init: Record<string, string> = {};
-      fields.forEach((f) => { init[f.key] = initialValues?.[f.key] || ""; });
+      const initLinks: Record<string, { label: string; url: string }[]> = {};
+      fields.forEach((f) => {
+        if (f.type === "links") {
+          try {
+            initLinks[f.key] = initialValues?.[f.key] ? JSON.parse(initialValues[f.key]) : [];
+          } catch {
+            initLinks[f.key] = [];
+          }
+        } else {
+          init[f.key] = initialValues?.[f.key] || "";
+        }
+      });
       setValues(init);
+      setLinksValues(initLinks);
     }
   }, [isOpen, fields, initialValues]);
 
@@ -37,9 +53,29 @@ export default function ItemFormModal({ isOpen, onClose, title, fields, initialV
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(values);
+    const merged: Record<string, string> = { ...values };
+    for (const [key, arr] of Object.entries(linksValues)) {
+      merged[key] = JSON.stringify(arr.filter((l) => l.label || l.url));
+    }
+    onSubmit(merged);
     onClose();
   };
+
+  function addLink(key: string) {
+    setLinksValues((prev) => ({ ...prev, [key]: [...(prev[key] || []), { label: "", url: "" }] }));
+  }
+
+  function updateLink(key: string, idx: number, field: "label" | "url", val: string) {
+    setLinksValues((prev) => {
+      const arr = [...(prev[key] || [])];
+      arr[idx] = { ...arr[idx], [field]: val };
+      return { ...prev, [key]: arr };
+    });
+  }
+
+  function removeLink(key: string, idx: number) {
+    setLinksValues((prev) => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== idx) }));
+  }
 
   return (
     <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -74,6 +110,52 @@ export default function ItemFormModal({ isOpen, onClose, title, fields, initialV
                   {field.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               ) : field.type === "image" ? (
+                <ImageUpload
+                  value={values[field.key] || ""}
+                  onChange={(dataUrl) => setValues((v) => ({ ...v, [field.key]: dataUrl }))}
+                  placeholder={field.placeholder}
+                />
+              ) : field.type === "links" ? (
+                <div className="space-y-2">
+                  {(linksValues[field.key] || []).map((link, idx) => (
+                    <div key={idx} className="flex gap-2 items-start">
+                      <div className="flex flex-col gap-1 flex-1">
+                        <input
+                          type="text"
+                          value={link.label}
+                          onChange={(e) => updateLink(field.key, idx, "label", e.target.value)}
+                          placeholder="Label (e.g. Google Form)"
+                          className="w-full p-2 font-mono text-sm bg-transparent outline-none"
+                          style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                        />
+                        <input
+                          type="url"
+                          value={link.url}
+                          onChange={(e) => updateLink(field.key, idx, "url", e.target.value)}
+                          placeholder="https://..."
+                          className="w-full p-2 font-mono text-sm bg-transparent outline-none"
+                          style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeLink(field.key, idx)}
+                        className="mt-1 p-1.5 text-red-400 hover:text-red-300 transition-colors"
+                        title="Remove"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addLink(field.key)}
+                    className="nasa-btn text-xs flex items-center gap-1"
+                  >
+                    <Plus size={12} /> ADD LINK
+                  </button>
+                </div>
+              ) : field.conditionalImage && values[field.conditionalImage.watchKey] === field.conditionalImage.whenValue ? (
                 <ImageUpload
                   value={values[field.key] || ""}
                   onChange={(dataUrl) => setValues((v) => ({ ...v, [field.key]: dataUrl }))}

@@ -18,6 +18,9 @@ export default function MediaEmbed({ media, className = "" }: MediaEmbedProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
+  // Normalize DB type (stored with underscore) back to hyphen form
+  const mediaType = (media.type as string)?.replace(/_/g, "-") as typeof media.type;
+
   const handleZoomIn = (e: React.MouseEvent) => {
     e.stopPropagation();
     setZoomLevel((prev) => Math.min(prev + 0.5, 4));
@@ -38,7 +41,7 @@ export default function MediaEmbed({ media, className = "" }: MediaEmbedProps) {
     overflow: "hidden" as const,
   };
 
-  switch (media.type) {
+  switch (mediaType) {
     case "google-slides": {
       let slideUrl = media.gurl || media.url || "";
       if (slideUrl.includes("/edit") || slideUrl.includes("/preview")) {
