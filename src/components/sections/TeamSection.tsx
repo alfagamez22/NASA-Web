@@ -1,12 +1,33 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { TEAM_EMAIL } from "@/lib/constants";
-import { getTeamSpine, saveTeamSpine, getTeams, saveTeams, type SpineMember, type TeamData, type TeamMemberData } from "@/lib/data-store";
 import { useEditMode } from "@/lib/edit-mode-context";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
+
+interface SpineMember { id: string; name: string; role: string; img: string; order: number }
+interface DBTeamMember { id: string; teamId: string; name: string; img: string; role: string; order: number }
+interface DBTeam { id: string; seqId: number; label: string; members: DBTeamMember[] }
+interface TeamMemberData { name: string; img: string; dbId: string }
+interface TeamData {
+  dbId: string; seqId: number; label: string;
+  head: TeamMemberData; tls: TeamMemberData[]; atls: TeamMemberData[]; engineers: TeamMemberData[];
+}
+
+function transformTeams(dbTeams: DBTeam[]): TeamData[] {
+  return dbTeams.map((t) => {
+    const grouped: Record<string, DBTeamMember[]> = { head: [], tl: [], atl: [], engineer: [] };
+    for (const m of t.members) grouped[m.role]?.push(m);
+    const toMember = (m: DBTeamMember): TeamMemberData => ({ name: m.name, img: m.img, dbId: m.id });
+    return {
+      dbId: t.id, seqId: t.seqId, label: t.label,
+      head: grouped.head[0] ? toMember(grouped.head[0]) : { name: "(vacant)", img: "/placeholder.jpg", dbId: "" },
+      tls: grouped.tl.map(toMember), atls: grouped.atl.map(toMember), engineers: grouped.engineer.map(toMember),
+    };
+  });
+}
 
 const SPINE_FIELDS: FormField[] = [
   { key: "name", label: "Name", required: true },
@@ -188,12 +209,12 @@ function EngrCard({ name, img, isEditMode, onEdit, onDelete }: { name: string; i
 function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMember }: {
   team: TeamData;
   isEditMode?: boolean;
-  onEditMember?: (teamId: number, role: string, idx: number, member: TeamMemberData) => void;
-  onDeleteMember?: (teamId: number, role: string, idx: number) => void;
-  onAddMember?: (teamId: number, role: string) => void;
+  onEditMember?: (teamId: string, role: string, idx: number, member: TeamMemberData) => void;
+  onDeleteMember?: (teamId: string, role: string, idx: number) => void;
+  onAddMember?: (teamId: string, role: string) => void;
 }) {
   const editProps = (role: string, idx: number, m: TeamMemberData) => isEditMode ? {
-    isEditMode, onEdit: () => onEditMember?.(team.id, role, idx, m), onDelete: () => onDeleteMember?.(team.id, role, idx),
+    isEditMode, onEdit: () => onEditMember?.(team.dbId, role, idx, m), onDelete: () => onDeleteMember?.(team.dbId, role, idx),
   } : {};
 
   return (
@@ -211,7 +232,7 @@ function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMembe
 
       {/* Team Head */}
       <TeamHeadCard name={team.head.name} img={team.head.img}
-        {...(isEditMode ? { isEditMode, onEdit: () => onEditMember?.(team.id, "head", 0, team.head), onDelete: () => onDeleteMember?.(team.id, "head", 0) } : {})}
+        {...(isEditMode ? { isEditMode, onEdit: () => onEditMember?.(team.dbId, "head", 0, team.head), onDelete: () => onDeleteMember?.(team.dbId, "head", 0) } : {})}
       />
 
       <VLine h="h-8" />
@@ -224,7 +245,7 @@ function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMembe
         ))}
       </div>
       {isEditMode && (
-        <button onClick={() => onAddMember?.(team.id, "tls")} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={12} /> Add TL</button>
+        <button onClick={() => onAddMember?.(team.dbId, "tls")} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={12} /> Add TL</button>
       )}
 
       {/* ATL */}
@@ -235,7 +256,7 @@ function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMembe
         ))}
       </div>
       {isEditMode && (
-        <button onClick={() => onAddMember?.(team.id, "atls")} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={12} /> Add ATL</button>
+        <button onClick={() => onAddMember?.(team.dbId, "atls")} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={12} /> Add ATL</button>
       )}
 
       <VLine h="h-8" />
@@ -248,7 +269,7 @@ function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMembe
         ))}
       </div>
       {isEditMode && (
-        <button onClick={() => onAddMember?.(team.id, "engineers")} className="nasa-btn text-xs mt-4 flex items-center gap-1"><Plus size={12} /> Add Engineer</button>
+        <button onClick={() => onAddMember?.(team.dbId, "engineers")} className="nasa-btn text-xs mt-4 flex items-center gap-1"><Plus size={12} /> Add Engineer</button>
       )}
     </div>
   );
@@ -258,27 +279,53 @@ function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMembe
 
 export default function TeamSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [spine, setSpine] = useState<SpineMember[]>([]);
+  const [teams, setTeams] = useState<TeamData[]>([]);
 
-  const spine = getTeamSpine();
-  const teams = getTeams();
-  void refreshKey;
+  const fetchSpine = useCallback(async () => {
+    try {
+      const res = await fetch("/api/teams?type=spine");
+      if (res.ok) setSpine(await res.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  const fetchTeams = useCallback(async () => {
+    try {
+      const res = await fetch("/api/teams");
+      if (res.ok) setTeams(transformTeams(await res.json()));
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchSpine(); fetchTeams(); }, [fetchSpine, fetchTeams]);
+
+  const fetchAll = useCallback(() => { fetchSpine(); fetchTeams(); }, [fetchSpine, fetchTeams]);
 
   // ── Spine CRUD ─────────────────────────────────────────────────────────
   const [spineModal, setSpineModal] = useState<{ mode: "add" | "edit"; idx?: number; init?: Record<string, string> } | null>(null);
 
   function handleAddSpine() { setSpineModal({ mode: "add" }); }
   function handleEditSpine(idx: number, m: SpineMember) { setSpineModal({ mode: "edit", idx, init: { name: m.name, role: m.role, img: m.img } }); }
-  function handleDeleteSpine(idx: number) {
-    const s = [...spine]; s.splice(idx, 1); saveTeamSpine(s);
-    markChanged(); notifyChange("team", "delete", "spine member"); refresh();
+  async function handleDeleteSpine(idx: number) {
+    const m = spine[idx];
+    await fetch(`/api/teams?id=${m.id}&type=spine`, { method: "DELETE" });
+    markChanged(); notifyChange("team", "delete", "spine member"); fetchAll();
   }
-  function handleSpineSubmit(vals: Record<string, string>) {
-    const s = [...spine];
-    const member: SpineMember = { name: vals.name, role: vals.role, img: vals.img };
-    if (spineModal?.mode === "edit" && spineModal.idx != null) { s[spineModal.idx] = member; } else { s.push(member); }
-    saveTeamSpine(s); markChanged(); notifyChange("team", spineModal?.mode === "edit" ? "edit" : "add", vals.name); setSpineModal(null); refresh();
+  async function handleSpineSubmit(vals: Record<string, string>) {
+    if (spineModal?.mode === "edit" && spineModal.idx != null) {
+      const m = spine[spineModal.idx];
+      await fetch("/api/teams", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "spine", id: m.id, name: vals.name, role: vals.role, img: vals.img }),
+      });
+    } else {
+      await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "spine", name: vals.name, role: vals.role, img: vals.img, order: spine.length }),
+      });
+    }
+    markChanged(); notifyChange("team", spineModal?.mode === "edit" ? "edit" : "add", vals.name); setSpineModal(null); fetchAll();
   }
 
   // ── Team CRUD ──────────────────────────────────────────────────────────
@@ -286,51 +333,71 @@ export default function TeamSection() {
 
   function handleAddTeam() { setTeamModal({ mode: "add" }); }
   function handleEditTeam(idx: number) { setTeamModal({ mode: "edit", teamIdx: idx, init: { label: teams[idx].label } }); }
-  function handleDeleteTeam(idx: number) {
-    const t = [...teams]; t.splice(idx, 1); saveTeams(t);
-    markChanged(); notifyChange("team", "delete", "team"); refresh();
+  async function handleDeleteTeam(idx: number) {
+    const t = teams[idx];
+    await fetch(`/api/teams?id=${t.dbId}&type=team`, { method: "DELETE" });
+    markChanged(); notifyChange("team", "delete", "team"); fetchAll();
   }
-  function handleTeamSubmit(vals: Record<string, string>) {
-    const t = [...teams];
+  async function handleTeamSubmit(vals: Record<string, string>) {
     if (teamModal?.mode === "edit" && teamModal.teamIdx != null) {
-      t[teamModal.teamIdx] = { ...t[teamModal.teamIdx], label: vals.label };
+      const t = teams[teamModal.teamIdx];
+      await fetch("/api/teams", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: t.dbId, label: vals.label }),
+      });
     } else {
-      t.push({ id: Date.now(), label: vals.label, head: { name: "New Head", img: "https://picsum.photos/seed/new/400/500" }, tls: [], atls: [], engineers: [] });
+      await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seqId: Date.now(), label: vals.label }),
+      });
     }
-    saveTeams(t); markChanged(); notifyChange("team", teamModal?.mode === "edit" ? "edit" : "add", vals.label); setTeamModal(null); refresh();
+    markChanged(); notifyChange("team", teamModal?.mode === "edit" ? "edit" : "add", vals.label); setTeamModal(null); fetchAll();
   }
 
   // ── Member CRUD ────────────────────────────────────────────────────────
-  const [memberModal, setMemberModal] = useState<{ mode: "add" | "edit"; teamId: number; role: string; idx?: number; init?: Record<string, string> } | null>(null);
+  const roleMap: Record<string, string> = { head: "head", tls: "tl", atls: "atl", engineers: "engineer" };
+  const [memberModal, setMemberModal] = useState<{ mode: "add" | "edit"; teamId: string; role: string; idx?: number; init?: Record<string, string> } | null>(null);
 
-  function handleEditMember(teamId: number, role: string, idx: number, m: TeamMemberData) {
+  function handleEditMember(teamId: string, role: string, idx: number, m: TeamMemberData) {
     setMemberModal({ mode: "edit", teamId, role, idx, init: { name: m.name, img: m.img } });
   }
-  function handleDeleteMember(teamId: number, role: string, idx: number) {
-    const t = teams.map((tm) => {
-      if (tm.id !== teamId) return tm;
-      if (role === "head") { return { ...tm, head: { name: "(vacant)", img: "https://picsum.photos/seed/vacant/400/500" } }; }
-      const arr = [...(tm as unknown as Record<string, unknown>)[role] as TeamMemberData[]];
-      arr.splice(idx, 1);
-      return { ...tm, [role]: arr } as TeamData;
-    });
-    saveTeams(t); markChanged(); notifyChange("team", "delete", "team member"); refresh();
+  async function handleDeleteMember(teamId: string, role: string, idx: number) {
+    const team = teams.find((t) => t.dbId === teamId);
+    if (!team) return;
+    const members = (team as unknown as Record<string, TeamMemberData[]>)[role] as TeamMemberData[] | undefined;
+    const memberAtIdx = role === "head" ? team.head : members?.[idx];
+    if (!memberAtIdx?.dbId) return;
+    await fetch(`/api/teams?id=${memberAtIdx.dbId}&type=member`, { method: "DELETE" });
+    markChanged(); notifyChange("team", "delete", "team member"); fetchAll();
   }
-  function handleAddMember(teamId: number, role: string) {
+  function handleAddMember(teamId: string, role: string) {
     setMemberModal({ mode: "add", teamId, role });
   }
-  function handleMemberSubmit(vals: Record<string, string>) {
+  async function handleMemberSubmit(vals: Record<string, string>) {
     if (!memberModal) return;
     const { teamId, role, mode, idx } = memberModal;
-    const member: TeamMemberData = { name: vals.name, img: vals.img };
-    const t = teams.map((tm) => {
-      if (tm.id !== teamId) return tm;
-      if (role === "head") { return { ...tm, head: member }; }
-      const arr = [...(tm as unknown as Record<string, unknown>)[role] as TeamMemberData[]];
-      if (mode === "edit" && idx != null) { arr[idx] = member; } else { arr.push(member); }
-      return { ...tm, [role]: arr } as TeamData;
-    });
-    saveTeams(t); markChanged(); notifyChange("team", mode === "edit" ? "edit" : "add", vals.name); setMemberModal(null); refresh();
+    const dbRole = roleMap[role] || role;
+    if (mode === "edit") {
+      const team = teams.find((t) => t.dbId === teamId);
+      if (!team) return;
+      const members = role === "head" ? [team.head] : (team as unknown as Record<string, TeamMemberData[]>)[role];
+      const memberAtIdx = role === "head" ? team.head : members?.[idx ?? 0];
+      if (!memberAtIdx?.dbId) return;
+      await fetch("/api/teams", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "member", id: memberAtIdx.dbId, name: vals.name, img: vals.img, role: dbRole }),
+      });
+    } else {
+      await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "member", teamId, name: vals.name, img: vals.img, role: dbRole, order: 0 }),
+      });
+    }
+    markChanged(); notifyChange("team", mode === "edit" ? "edit" : "add", vals.name); setMemberModal(null); fetchAll();
   }
 
   return (
@@ -375,7 +442,7 @@ export default function TeamSection() {
           {/* Two team columns */}
           <div className="grid grid-cols-2">
             {teams.map((team, tIdx) => (
-              <div key={team.id} className="flex flex-col items-center pt-10 px-4">
+              <div key={team.dbId} className="flex flex-col items-center pt-10 px-4">
                 {isEditMode && (
                   <div className="flex gap-2 mb-2">
                     <button onClick={() => handleEditTeam(tIdx)} className="nasa-btn text-xs flex items-center gap-1"><Edit2 size={12} /> Rename</button>

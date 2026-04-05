@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import { useAuth } from "./auth-context";
-import { addNotification } from "./data-store";
 
 interface EditModeContextType {
   isEditMode: boolean;
@@ -80,13 +79,11 @@ export function EditModeProvider({ children }: { children: ReactNode }) {
   const notifyChange = useCallback(
     (page: string, changeType: "add" | "edit" | "delete", itemName: string) => {
       if (user && isEditor && !isAdmin) {
-        addNotification({
-          page,
-          changeType,
-          itemName,
-          timestamp: new Date().toISOString(),
-          username: user.displayName || user.username,
-        });
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ page, changeType, itemName }),
+        }).catch(() => {});
       }
     },
     [user, isEditor, isAdmin]

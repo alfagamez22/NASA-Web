@@ -3,15 +3,17 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, Bell, Check, ArrowUpDown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import {
-  getNotifications,
-  markAllNotificationsRead,
-  clearNotifications,
-  markNotificationRead,
-  getViewerPermissions,
-  setViewerPagePermissions,
-  type Notification,
-} from "@/lib/data-store";
+
+interface Notification {
+  id: string;
+  page: string;
+  changeType: string;
+  itemName: string;
+  username: string;
+  userId: string;
+  read: boolean;
+  createdAt: string;
+}
 
 interface DBUser {
   id: string;
@@ -75,7 +77,10 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
         setUsersState(data);
       }
     } catch { /* ignore */ }
-    setNotificationsState(getNotifications());
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) setNotificationsState(await res.json());
+    } catch { /* ignore */ }
   }
 
   function resetForm() {
@@ -151,15 +156,28 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
     setIsCreating(false);
   }
 
-  function openPermissions(userId: string) {
+  async function openPermissions(userId: string) {
     setPermUserId(userId);
-    const vp = getViewerPermissions().find((p) => p.userId === userId);
-    setPermPages(vp ? vp.allowedPages : ALL_PAGES.map((p) => p.slug));
+    try {
+      const res = await fetch(`/api/permissions?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPermPages(data.allowedPages?.length ? data.allowedPages : ALL_PAGES.map((p) => p.slug));
+      } else {
+        setPermPages(ALL_PAGES.map((p) => p.slug));
+      }
+    } catch {
+      setPermPages(ALL_PAGES.map((p) => p.slug));
+    }
   }
 
-  function savePermissions() {
+  async function savePermissions() {
     if (permUserId) {
-      setViewerPagePermissions(permUserId, permPages);
+      await fetch("/api/permissions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: permUserId, allowedPages: permPages }),
+      });
       setPermUserId(null);
     }
   }
@@ -420,13 +438,13 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                 </h3>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { markAllNotificationsRead(); refreshList(); }}
+                    onClick={async () => { await fetch('/api/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markAllRead: true }) }); refreshList(); }}
                     className="nasa-btn text-[10px] flex items-center gap-1"
                   >
                     <Check size={12} /> MARK ALL READ
                   </button>
                   <button
-                    onClick={() => { clearNotifications(); refreshList(); }}
+                    onClick={async () => { await fetch('/api/notifications', { method: 'DELETE' }); refreshList(); }}
                     className="nasa-btn text-[10px] flex items-center gap-1"
                   >
                     <Trash2 size={12} /> CLEAR
@@ -448,7 +466,7 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                       border: "1px solid var(--border-color)",
                       background: n.read ? "transparent" : "rgba(0,212,255,0.05)",
                     }}
-                    onClick={() => { markNotificationRead(n.id); refreshList(); }}
+                    onClick={async () => { await fetch('/api/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) }); refreshList(); }}
                   >
                     <div className="flex items-start justify-between">
                       <div>
@@ -462,7 +480,7 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                       {!n.read && <div className="w-2 h-2 rounded-full bg-cyan-400 mt-1 flex-shrink-0" />}
                     </div>
                     <p className="font-mono text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>
-                      {new Date(n.timestamp).toLocaleString()}
+                      {new Date(n.createdAt).toLocaleString()}
                     </p>
                   </div>
                 ))}

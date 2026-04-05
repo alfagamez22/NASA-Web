@@ -1,9 +1,9 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import TechCard from "@/components/ui/TechCard";
 import { TECH_TYPES } from "@/lib/constants";
-import { getSectionsByParentLS } from "@/lib/data-store";
 import ContentSectionCard from "@/components/content/ContentSectionCard";
 import MediaEmbed from "@/components/content/MediaEmbed";
 
@@ -21,7 +21,17 @@ const ASGARD_SLIDES_URL = "https://docs.google.com/presentation/d/1rDwQYbOKt2HN9
  * as Know More (rich text, embeds, slides, etc.).
  */
 export default function TrackerSection() {
-  const trackerSections = getSectionsByParentLS("tracker");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [trackerSections, setTrackerSections] = useState<any[]>([]);
+
+  const fetchSections = useCallback(async () => {
+    try {
+      const res = await fetch("/api/sections?parent=tracker");
+      if (res.ok) setTrackerSections(await res.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchSections(); }, [fetchSections]);
 
   return (
     <motion.div

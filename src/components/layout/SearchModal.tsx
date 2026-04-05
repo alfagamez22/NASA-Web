@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getAllToolsLS, getAllSectionsLS } from "@/lib/data-store";
+import { useState, useEffect, useCallback } from "react";
 import ToolCard from "@/components/ui/ToolCard";
 
 interface SearchModalProps {
@@ -9,17 +8,33 @@ interface SearchModalProps {
   onClose: () => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ToolItem = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SectionItem = any;
+
 /**
  * Search modal — searches across all tools and content sections.
- *
- * Now uses the content service to query across the entire slug-based
- * data layer, not just tools.
  */
 export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [allTools, setAllTools] = useState<ToolItem[]>([]);
+  const [allSections, setAllSections] = useState<SectionItem[]>([]);
 
-  const allTools = getAllToolsLS();
-  const allSections = getAllSectionsLS();
+  const fetchAll = useCallback(async () => {
+    try {
+      const [toolsRes, sectionsRes] = await Promise.all([
+        fetch("/api/tools"),
+        fetch("/api/sections"),
+      ]);
+      if (toolsRes.ok) setAllTools(await toolsRes.json());
+      if (sectionsRes.ok) setAllSections(await sectionsRes.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) fetchAll();
+  }, [isOpen, fetchAll]);
 
   const filteredTools = allTools.filter(
     (t) =>

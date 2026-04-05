@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Edit2, GripVertical } from "lucide-react";
-import { getCategoriesByParentLS, addCategory, updateCategory, deleteCategory, addToolToCategory, updateToolInCategory, deleteToolFromCategory, generateId } from "@/lib/data-store";
 import { useEditMode } from "@/lib/edit-mode-context";
 import CollapsibleCategory from "@/components/ui/CollapsibleCategory";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 import { CONTACT_NUMBERS } from "@/lib/constants";
 import type { ToolCategory, ToolItem } from "@/lib/types";
+
+function generateSlug() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 const CATEGORY_FIELDS: FormField[] = [
   { key: "title", label: "Category Title", required: true, placeholder: "e.g. OPERATIONS" },
@@ -23,10 +24,19 @@ const TOOL_FIELDS: FormField[] = [
 
 export default function HomeSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [categories, setCategories] = useState<ToolCategory[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const categories = getCategoriesByParentLS("home");
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch("/api/categories?parent=home");
+      if (res.ok) setCategories(await res.json());
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
+
   const backgroundVideoOpacity = 10.08;
 
   // Modal state
@@ -36,75 +46,79 @@ export default function HomeSection() {
   const [editingTool, setEditingTool] = useState<{ tool: ToolItem; categorySlug: string } | null>(null);
   const [targetCategorySlug, setTargetCategorySlug] = useState("");
 
-  function handleAddCategory(values: Record<string, string>) {
-    const slug = generateId();
-    addCategory({
-      slug,
-      title: values.title,
-      parentSlug: "home",
-      order: categories.length,
-      tools: [],
+  async function handleAddCategory(values: Record<string, string>) {
+    const slug = generateSlug();
+    await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug, title: values.title, parentSlug: "home", order: categories.length }),
     });
     markChanged();
     notifyChange("home", "add", values.title);
-    refresh();
+    fetchCategories();
   }
 
-  function handleEditCategory(values: Record<string, string>) {
+  async function handleEditCategory(values: Record<string, string>) {
     if (!editingCategory) return;
-    updateCategory(editingCategory.slug, { title: values.title });
+    await fetch("/api/categories", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: editingCategory.slug, title: values.title }),
+    });
     markChanged();
     notifyChange("home", "edit", values.title);
     setEditingCategory(null);
-    refresh();
+    fetchCategories();
   }
 
-  function handleDeleteCategory(cat: ToolCategory) {
+  async function handleDeleteCategory(cat: ToolCategory) {
     if (confirm(`Delete category "${cat.title}" and all its tools?`)) {
-      deleteCategory(cat.slug);
+      await fetch(`/api/categories?slug=${cat.slug}`, { method: "DELETE" });
       markChanged();
       notifyChange("home", "delete", cat.title);
-      refresh();
+      fetchCategories();
     }
   }
 
-  function handleAddTool(values: Record<string, string>) {
-    const slug = generateId();
+  async function handleAddTool(values: Record<string, string>) {
+    const slug = generateSlug();
     const cat = categories.find((c) => c.slug === targetCategorySlug);
-    addToolToCategory(targetCategorySlug, {
-      slug,
-      title: values.title,
-      url: values.url,
-      icon: values.icon || "Monitor",
-      description: values.description || "",
-      categorySlug: targetCategorySlug,
-      order: cat ? cat.tools.length : 0,
+    await fetch("/api/tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug, title: values.title, url: values.url,
+        icon: values.icon || "Monitor", description: values.description || "",
+        categorySlug: targetCategorySlug, order: cat ? cat.tools.length : 0,
+      }),
     });
     markChanged();
     notifyChange("home", "add", values.title);
-    refresh();
+    fetchCategories();
   }
 
-  function handleEditTool(values: Record<string, string>) {
+  async function handleEditTool(values: Record<string, string>) {
     if (!editingTool) return;
-    updateToolInCategory(editingTool.categorySlug, editingTool.tool.slug, {
-      title: values.title,
-      url: values.url,
-      icon: values.icon || "Monitor",
-      description: values.description || "",
+    await fetch("/api/tools", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug: editingTool.tool.slug, title: values.title, url: values.url,
+        icon: values.icon || "Monitor", description: values.description || "",
+      }),
     });
     markChanged();
     notifyChange("home", "edit", values.title);
     setEditingTool(null);
-    refresh();
+    fetchCategories();
   }
 
-  function handleDeleteTool(categorySlug: string, tool: ToolItem) {
+  async function handleDeleteTool(categorySlug: string, tool: ToolItem) {
     if (confirm(`Delete tool "${tool.title}"?`)) {
-      deleteToolFromCategory(categorySlug, tool.slug);
+      await fetch(`/api/tools?slug=${tool.slug}`, { method: "DELETE" });
       markChanged();
       notifyChange("home", "delete", tool.title);
-      refresh();
+      fetchCategories();
     }
   }
 
@@ -114,7 +128,6 @@ export default function HomeSection() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="space-y-0"
-      key={refreshKey}
     >
       {/* Tool Categories Grid */}
       <div className="tool-categories-wrapper w-full overflow-hidden bg-nasa-darker" style={{ position: "relative", zIndex: 0, backgroundColor: "rgba(0, 8, 20, 1)" }}>

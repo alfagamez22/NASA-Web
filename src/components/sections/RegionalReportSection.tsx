@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { getSectionsByParentLS, addSection, updateSection, deleteSection, generateId } from "@/lib/data-store";
 import { useEditMode } from "@/lib/edit-mode-context";
 import SlideCard from "@/components/content/SlideCard";
 import TBAReport from "@/components/sections/TBAReport";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 import type { ContentSection } from "@/lib/types";
+
+function generateSlug() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 const SECTION_FIELDS: FormField[] = [
   { key: "title", label: "Region/Section Title", required: true, placeholder: "e.g. LUZON" },
@@ -28,79 +29,83 @@ interface RegionalReportSectionProps {
 
 export default function RegionalReportSection({ reportType, moduleSlug }: RegionalReportSectionProps) {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [regions, setRegions] = useState<ContentSection[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const regions = getSectionsByParentLS(moduleSlug);
+  const fetchRegions = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/sections?parent=${moduleSlug}`);
+      if (res.ok) setRegions(await res.json());
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [moduleSlug]);
+
+  useEffect(() => { fetchRegions(); }, [fetchRegions]);
 
   const [showModal, setShowModal] = useState(false);
   const [editingSection, setEditingSection] = useState<ContentSection | null>(null);
 
-  function handleAdd(values: Record<string, string>) {
-    const slug = generateId();
-    const slides = values.mediaType && values.mediaUrl ? [{
-      slug: generateId(),
+  function buildSlides(values: Record<string, string>, sectionSlug: string, existingSlideSlug?: string) {
+    if (!values.mediaType || !values.mediaUrl) return undefined;
+    return [{
+      slug: existingSlideSlug || generateSlug(),
       title: values.title,
-      sectionSlug: slug,
-      order: 0,
-      layout: "single" as const,
+      sectionSlug,
+      layout: "single",
       columns: [{
-        type: "media" as const,
+        type: "media",
         media: {
-          type: values.mediaType as "google-slides" | "iframe" | "image",
+          type: values.mediaType,
           ...(values.mediaType === "google-slides" ? { gurl: values.mediaUrl } : { url: values.mediaUrl }),
         },
       }],
-    }] : undefined;
+    }];
+  }
 
-    addSection({
-      slug, title: values.title, parentSlug: moduleSlug, order: regions.length,
-      description: values.description || undefined,
-      slides,
+  async function handleAdd(values: Record<string, string>) {
+    const slug = generateSlug();
+    await fetch("/api/sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug, title: values.title, parentSlug: moduleSlug, order: regions.length,
+        description: values.description || undefined,
+        slides: buildSlides(values, slug),
+      }),
     });
     markChanged();
     notifyChange(`report-${moduleSlug}`, "add", values.title);
-    refresh();
+    fetchRegions();
   }
 
-  function handleEdit(values: Record<string, string>) {
+  async function handleEdit(values: Record<string, string>) {
     if (!editingSection) return;
-    const slides = values.mediaType && values.mediaUrl ? [{
-      slug: editingSection.slides?.[0]?.slug || generateId(),
-      title: values.title,
-      sectionSlug: editingSection.slug,
-      order: 0,
-      layout: "single" as const,
-      columns: [{
-        type: "media" as const,
-        media: {
-          type: values.mediaType as "google-slides" | "iframe" | "image",
-          ...(values.mediaType === "google-slides" ? { gurl: values.mediaUrl } : { url: values.mediaUrl }),
-        },
-      }],
-    }] : editingSection.slides;
-
-    updateSection(editingSection.slug, {
-      title: values.title,
-      description: values.description || undefined,
-      slides,
+    await fetch("/api/sections", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug: editingSection.slug,
+        title: values.title,
+        description: values.description || undefined,
+        slides: buildSlides(values, editingSection.slug, editingSection.slides?.[0]?.slug),
+      }),
     });
     markChanged();
     notifyChange(`report-${moduleSlug}`, "edit", values.title);
     setEditingSection(null);
-    refresh();
+    fetchRegions();
   }
 
-  function handleDelete(section: ContentSection) {
+  async function handleDelete(section: ContentSection) {
     if (confirm(`Delete "${section.title}"?`)) {
-      deleteSection(section.slug);
+      await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
       markChanged();
       notifyChange(`report-${moduleSlug}`, "delete", section.title);
-      refresh();
+      fetchRegions();
     }
   }
 
-  if (regions.length === 0 && !isEditMode) {
+  if (regions.length === 0 && !isEditMode && !loading) {
     return <TBAReport title={`${reportType} REPORT`} />;
   }
 
@@ -109,7 +114,6 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-0 text-center"
-      key={refreshKey}
     >
       {/* Hero Banner */}
       <div

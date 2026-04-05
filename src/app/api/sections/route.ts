@@ -54,12 +54,47 @@ export async function POST(req: NextRequest) {
       title: body.title,
       parentSlug: body.parentSlug,
       description: body.description ?? "",
+      content: body.content ?? null,
       author: body.author ?? null,
       authorUrl: body.authorUrl ?? null,
       colSpan: body.colSpan ?? 1,
       order: body.order ?? 0,
       buttonLabel: body.buttonLabel ?? null,
       buttonUrl: body.buttonUrl ?? null,
+      media: body.media?.length ? {
+        create: body.media.map((m: Record<string, string>, i: number) => ({
+          type: m.type?.replace("-", "_") ?? "image",
+          url: m.url ?? null,
+          gurl: m.gurl ?? null,
+          yurl: m.yurl ?? null,
+          alt: m.alt ?? null,
+          caption: m.caption ?? null,
+          order: i,
+        })),
+      } : undefined,
+      slides: body.slides?.length ? {
+        create: body.slides.map((s: Record<string, unknown>, si: number) => ({
+          slug: (s.slug as string) || `slide-${Date.now()}-${si}`,
+          title: (s.title as string) || "",
+          layout: (s.layout as string) || "single",
+          order: si,
+          columns: (s.columns as Record<string, unknown>[])?.length ? {
+            create: (s.columns as Record<string, unknown>[]).map((c: Record<string, unknown>, ci: number) => ({
+              type: (c.type as string) || "text",
+              content: (c.content as string) ?? null,
+              mediaType: ((c.media as Record<string, string>)?.type as string) ?? null,
+              mediaUrl: ((c.media as Record<string, string>)?.url as string) ?? null,
+              mediaGurl: ((c.media as Record<string, string>)?.gurl as string) ?? null,
+              mediaYurl: ((c.media as Record<string, string>)?.yurl as string) ?? null,
+              order: ci,
+            })),
+          } : undefined,
+        })),
+      } : undefined,
+    },
+    include: {
+      media: { orderBy: { order: "asc" } },
+      slides: { orderBy: { order: "asc" }, include: { columns: { orderBy: { order: "asc" } } } },
     },
   });
 
@@ -74,12 +109,73 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const { slug, media, links, slides, ...data } = body;
 
+  // Update base section fields
   const section = await prisma.contentSection.update({
     where: { slug },
     data,
   });
 
-  return NextResponse.json(section);
+  // Replace media if provided
+  if (media !== undefined) {
+    await prisma.sectionMedia.deleteMany({ where: { sectionId: section.id } });
+    if (media?.length) {
+      await prisma.sectionMedia.createMany({
+        data: media.map((m: Record<string, string>, i: number) => ({
+          sectionId: section.id,
+          type: m.type?.replace("-", "_") ?? "image",
+          url: m.url ?? null,
+          gurl: m.gurl ?? null,
+          yurl: m.yurl ?? null,
+          alt: m.alt ?? null,
+          caption: m.caption ?? null,
+          order: i,
+        })),
+      });
+    }
+  }
+
+  // Replace slides if provided
+  if (slides !== undefined) {
+    // Delete old slides (columns cascade)
+    await prisma.slideItem.deleteMany({ where: { sectionId: section.id } });
+    if (slides?.length) {
+      for (let si = 0; si < slides.length; si++) {
+        const s = slides[si];
+        await prisma.slideItem.create({
+          data: {
+            slug: s.slug || `slide-${Date.now()}-${si}`,
+            title: s.title || "",
+            sectionId: section.id,
+            layout: s.layout || "single",
+            order: si,
+            columns: s.columns?.length ? {
+              create: s.columns.map((c: Record<string, unknown>, ci: number) => ({
+                type: (c.type as string) || "text",
+                content: (c.content as string) ?? null,
+                mediaType: ((c.media as Record<string, string>)?.type as string) ?? null,
+                mediaUrl: ((c.media as Record<string, string>)?.url as string) ?? null,
+                mediaGurl: ((c.media as Record<string, string>)?.gurl as string) ?? null,
+                mediaYurl: ((c.media as Record<string, string>)?.yurl as string) ?? null,
+                order: ci,
+              })),
+            } : undefined,
+          },
+        });
+      }
+    }
+  }
+
+  // Return full section with relations
+  const full = await prisma.contentSection.findUnique({
+    where: { slug },
+    include: {
+      media: { orderBy: { order: "asc" } },
+      links: { orderBy: { order: "asc" } },
+      slides: { orderBy: { order: "asc" }, include: { columns: { orderBy: { order: "asc" } } } },
+    },
+  });
+
+  return NextResponse.json(full);
 }
 
 // DELETE /api/sections?slug=xxx

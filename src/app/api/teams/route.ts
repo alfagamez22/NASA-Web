@@ -36,6 +36,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(spine, { status: 201 });
   }
 
+  if (body.type === "member") {
+    const member = await prisma.teamMember.create({
+      data: {
+        teamId: body.teamId,
+        name: body.name,
+        img: body.img ?? "/placeholder.jpg",
+        role: body.role ?? "engineer",
+        order: body.order ?? 0,
+      },
+    });
+    return NextResponse.json(member, { status: 201 });
+  }
+
   const team = await prisma.team.create({
     data: { seqId: body.seqId, label: body.label },
   });

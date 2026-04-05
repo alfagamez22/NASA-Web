@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { getTeamDrive, saveTeamDrive, type TeamDriveCategory, type TeamDriveItem } from "@/lib/data-store";
 import { useEditMode } from "@/lib/edit-mode-context";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
+
+interface TeamDriveItem { id: string; categoryId: string; label: string; url: string; urlType: string; order: number }
+interface TeamDriveCategory { id: string; title: string; order: number; items: TeamDriveItem[] }
 
 const CATEGORY_FIELDS: FormField[] = [
   { key: "title", label: "Category Title", required: true, placeholder: "e.g. SCRIPTS" },
@@ -23,29 +25,41 @@ const RAN_CONFIG_PPM_URL = "https://drive.google.com/...";
 
 export default function TeamDriveSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [drive, setDrive] = useState<TeamDriveCategory[]>([]);
 
-  const drive = getTeamDrive();
-  void refreshKey;
+  const fetchDrive = useCallback(async () => {
+    try {
+      const res = await fetch("/api/drive");
+      if (res.ok) setDrive(await res.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchDrive(); }, [fetchDrive]);
 
   // ── Category CRUD ──────────────────────────────────────────────────────
   const [catModal, setCatModal] = useState<{ mode: "add" | "edit"; idx?: number; init?: Record<string, string> } | null>(null);
 
   function handleAddCategory() { setCatModal({ mode: "add" }); }
   function handleEditCategory(idx: number) { setCatModal({ mode: "edit", idx, init: { title: drive[idx].title } }); }
-  function handleDeleteCategory(idx: number) {
-    const d = [...drive]; d.splice(idx, 1); saveTeamDrive(d);
-    markChanged(); notifyChange("team-drive", "delete", "drive category"); refresh();
+  async function handleDeleteCategory(idx: number) {
+    await fetch(`/api/drive?id=${drive[idx].id}&type=category`, { method: "DELETE" });
+    markChanged(); notifyChange("team-drive", "delete", "drive category"); fetchDrive();
   }
-  function handleCatSubmit(vals: Record<string, string>) {
-    const d = [...drive];
+  async function handleCatSubmit(vals: Record<string, string>) {
     if (catModal?.mode === "edit" && catModal.idx != null) {
-      d[catModal.idx] = { ...d[catModal.idx], title: vals.title };
+      await fetch("/api/drive", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "category", id: drive[catModal.idx].id, title: vals.title }),
+      });
     } else {
-      d.push({ id: crypto.randomUUID(), title: vals.title, items: [] });
+      await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "category", title: vals.title, order: drive.length }),
+      });
     }
-    saveTeamDrive(d); markChanged(); notifyChange("team-drive", catModal?.mode === "edit" ? "edit" : "add", vals.label); setCatModal(null); refresh();
+    markChanged(); notifyChange("team-drive", catModal?.mode === "edit" ? "edit" : "add", vals.title); setCatModal(null); fetchDrive();
   }
 
   // ── Item CRUD ──────────────────────────────────────────────────────────
@@ -55,21 +69,29 @@ export default function TeamDriveSection() {
   function handleEditItem(catIdx: number, itemIdx: number, item: TeamDriveItem) {
     setItemModal({ mode: "edit", catIdx, itemIdx, init: { label: item.label, url: item.url, urlType: item.urlType } });
   }
-  function handleDeleteItem(catIdx: number, itemIdx: number) {
-    const d = [...drive]; d[catIdx] = { ...d[catIdx], items: d[catIdx].items.filter((_, i) => i !== itemIdx) };
-    saveTeamDrive(d); markChanged(); notifyChange("team-drive", "delete", "drive item"); refresh();
+  async function handleDeleteItem(catIdx: number, itemIdx: number) {
+    const item = drive[catIdx].items[itemIdx];
+    await fetch(`/api/drive?id=${item.id}&type=item`, { method: "DELETE" });
+    markChanged(); notifyChange("team-drive", "delete", "drive item"); fetchDrive();
   }
-  function handleItemSubmit(vals: Record<string, string>) {
+  async function handleItemSubmit(vals: Record<string, string>) {
     if (!itemModal) return;
-    const d = [...drive];
-    const item: TeamDriveItem = { id: crypto.randomUUID(), label: vals.label, url: vals.url, urlType: (vals.urlType as TeamDriveItem["urlType"]) || "url" };
-    const items = [...d[itemModal.catIdx].items];
+    const cat = drive[itemModal.catIdx];
     if (itemModal.mode === "edit" && itemModal.itemIdx != null) {
-      item.id = items[itemModal.itemIdx].id;
-      items[itemModal.itemIdx] = item;
-    } else { items.push(item); }
-    d[itemModal.catIdx] = { ...d[itemModal.catIdx], items };
-    saveTeamDrive(d); markChanged(); notifyChange("team-drive", itemModal.mode === "edit" ? "edit" : "add", vals.label); setItemModal(null); refresh();
+      const item = cat.items[itemModal.itemIdx];
+      await fetch("/api/drive", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "item", id: item.id, label: vals.label, url: vals.url, urlType: vals.urlType || "url" }),
+      });
+    } else {
+      await fetch("/api/drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "item", categoryId: cat.id, label: vals.label, url: vals.url, urlType: vals.urlType || "url", order: cat.items.length }),
+      });
+    }
+    markChanged(); notifyChange("team-drive", itemModal.mode === "edit" ? "edit" : "add", vals.label); setItemModal(null); fetchDrive();
   }
 
   const CategoryRow = ({ cat, catIdx }: { cat: TeamDriveCategory; catIdx: number }) => (

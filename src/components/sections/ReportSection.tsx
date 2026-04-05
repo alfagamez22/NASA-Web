@@ -1,19 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import MediaEmbed from "@/components/content/MediaEmbed";
 import { useEditMode } from "@/lib/edit-mode-context";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
-const LS_KEY = "scc-portal-report-slides";
-
 interface ReportSlide {
   id: string;
   label: string;
   gurl: string;
-  colSpan?: number; // 1 or 2
+  colSpan?: number;
 }
 
 const DEFAULT_SLIDES: ReportSlide[] = [
@@ -22,12 +20,16 @@ const DEFAULT_SLIDES: ReportSlide[] = [
   { id: "bottom", label: "BOTTOM", gurl: "https://docs.google.com/presentation/d/1rDwQYbOKt2HN9sdf2brkJl_QB3uxzSv088CozCp80rg/edit?slide=id.g5d479e855d_0_25#slide=id.g5d479e855d_0_25", colSpan: 2 },
 ];
 
-function getSlides(): ReportSlide[] {
-  if (typeof window === "undefined") return DEFAULT_SLIDES;
-  const raw = localStorage.getItem(LS_KEY);
-  return raw ? JSON.parse(raw) : DEFAULT_SLIDES;
+function sectionsToSlides(sections: Array<{ slug: string; title: string; colSpan?: number; media?: Array<{ gurl?: string }> }>): ReportSlide[] {
+  return sections.map((s) => ({
+    id: s.slug,
+    label: s.title,
+    gurl: s.media?.[0]?.gurl || "",
+    colSpan: s.colSpan ?? 1,
+  }));
 }
-function saveSlides(slides: ReportSlide[]) { localStorage.setItem(LS_KEY, JSON.stringify(slides)); }
+
+function generateSlug() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 const SLIDE_FIELDS: FormField[] = [
   { key: "label", label: "Label", required: true, placeholder: "e.g. LEFT, RIGHT, BOTTOM" },
@@ -37,11 +39,21 @@ const SLIDE_FIELDS: FormField[] = [
 
 export default function ReportSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [slides, setSlides] = useState<ReportSlide[]>(DEFAULT_SLIDES);
+  const [loaded, setLoaded] = useState(false);
 
-  const slides = getSlides();
-  void refreshKey;
+  const fetchSlides = useCallback(async () => {
+    try {
+      const res = await fetch("/api/sections?parent=report");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length > 0) setSlides(sectionsToSlides(data));
+      }
+    } catch { /* ignore */ }
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => { fetchSlides(); }, [fetchSlides]);
 
   const [modal, setModal] = useState<{ mode: "add" | "edit"; idx?: number; init?: Record<string, string> } | null>(null);
 
@@ -50,16 +62,40 @@ export default function ReportSection() {
     const s = slides[idx];
     setModal({ mode: "edit", idx, init: { label: s.label, gurl: s.gurl, colSpan: String(s.colSpan ?? 1) } });
   }
-  function handleDelete(idx: number) {
-    const s = slides.filter((_, i) => i !== idx); saveSlides(s);
-    markChanged(); notifyChange("report", "delete", "report slide"); refresh();
+
+  async function handleDelete(idx: number) {
+    const slide = slides[idx];
+    await fetch(`/api/sections?slug=${slide.id}`, { method: "DELETE" });
+    markChanged(); notifyChange("report", "delete", "report slide");
+    fetchSlides();
   }
-  function handleSubmit(vals: Record<string, string>) {
-    const s = [...slides];
-    const slide: ReportSlide = { id: crypto.randomUUID(), label: vals.label, gurl: vals.gurl, colSpan: parseInt(vals.colSpan) || 1 };
-    if (modal?.mode === "edit" && modal.idx != null) { slide.id = s[modal.idx].id; s[modal.idx] = slide; }
-    else { s.push(slide); }
-    saveSlides(s); markChanged(); notifyChange("report", modal?.mode === "edit" ? "edit" : "add", vals.label); setModal(null); refresh();
+
+  async function handleSubmit(vals: Record<string, string>) {
+    const colSpan = parseInt(vals.colSpan) || 1;
+    if (modal?.mode === "edit" && modal.idx != null) {
+      const slide = slides[modal.idx];
+      await fetch("/api/sections", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: slide.id, title: vals.label, colSpan,
+          media: [{ type: "google-slides", gurl: vals.gurl }],
+        }),
+      });
+    } else {
+      const slug = generateSlug();
+      await fetch("/api/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug, title: vals.label, parentSlug: "report", order: slides.length, colSpan,
+          media: [{ type: "google-slides", gurl: vals.gurl }],
+        }),
+      });
+    }
+    markChanged(); notifyChange("report", modal?.mode === "edit" ? "edit" : "add", vals.label);
+    setModal(null);
+    fetchSlides();
   }
 
   return (

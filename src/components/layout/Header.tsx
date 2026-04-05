@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { Search, Settings, LogOut, Pencil, X, Check, Bell, Move, Edit2, Plus, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEditMode } from "@/lib/edit-mode-context";
-import { getNotifications } from "@/lib/data-store";
+
 
 import SearchModal from "./SearchModal";
 import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
@@ -109,7 +109,22 @@ export default function Header() {
   }
 
   const canEdit = isAdmin || isEditor;
-  const unreadCount = isAdmin ? getNotifications().filter((n) => !n.read).length : 0;
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/notifications");
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setUnreadCount(Array.isArray(data) ? data.filter((n: { read: boolean }) => !n.read).length : 0);
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isAdmin]);
 
   // Build nav items from modules
   const navItems = modules.map((m) => ({

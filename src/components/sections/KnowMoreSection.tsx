@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { getSectionsByParentLS, addSection, updateSection, deleteSection, generateId } from "@/lib/data-store";
 import { useEditMode } from "@/lib/edit-mode-context";
 import ContentSectionCard from "@/components/content/ContentSectionCard";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 import type { ContentSection } from "@/lib/types";
+
+function generateSlug() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 const SECTION_FIELDS: FormField[] = [
   { key: "title", label: "Title", required: true, placeholder: "e.g. Nokia MML & Alarms" },
@@ -28,10 +29,18 @@ const SECTION_FIELDS: FormField[] = [
 
 export default function KnowMoreSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [sections, setSections] = useState<ContentSection[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sections = getSectionsByParentLS("know-more");
+  const fetchSections = useCallback(async () => {
+    try {
+      const res = await fetch("/api/sections?parent=know-more");
+      if (res.ok) setSections(await res.json());
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchSections(); }, [fetchSections]);
 
   const [showModal, setShowModal] = useState(false);
   const [editingSection, setEditingSection] = useState<ContentSection | null>(null);
@@ -51,64 +60,60 @@ export default function KnowMoreSection() {
     };
   }
 
-  function handleAdd(values: Record<string, string>) {
-    const slug = generateId();
-    const media = values.mediaType && values.mediaUrl ? [{
-      type: values.mediaType as "google-slides" | "youtube" | "image" | "iframe",
+  function buildMedia(values: Record<string, string>) {
+    if (!values.mediaType || !values.mediaUrl) return undefined;
+    return [{
+      type: values.mediaType,
       ...(values.mediaType === "google-slides" ? { gurl: values.mediaUrl } :
           values.mediaType === "youtube" ? { yurl: values.mediaUrl } :
           { url: values.mediaUrl }),
-    }] : undefined;
+    }];
+  }
 
-    addSection({
-      slug,
-      title: values.title,
-      parentSlug: "know-more",
-      order: sections.length,
-      author: values.author || undefined,
-      authorUrl: values.authorUrl || undefined,
-      description: values.description || undefined,
-      content: values.content || undefined,
-      media,
-      buttonLabel: values.buttonLabel || undefined,
-      buttonUrl: values.buttonUrl || undefined,
+  async function handleAdd(values: Record<string, string>) {
+    const slug = generateSlug();
+    await fetch("/api/sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug, title: values.title, parentSlug: "know-more", order: sections.length,
+        author: values.author || undefined, authorUrl: values.authorUrl || undefined,
+        description: values.description || undefined, content: values.content || undefined,
+        media: buildMedia(values),
+        buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
+      }),
     });
     markChanged();
     notifyChange("know-more", "add", values.title);
-    refresh();
+    fetchSections();
   }
 
-  function handleEdit(values: Record<string, string>) {
+  async function handleEdit(values: Record<string, string>) {
     if (!editingSection) return;
-    const media = values.mediaType && values.mediaUrl ? [{
-      type: values.mediaType as "google-slides" | "youtube" | "image" | "iframe",
-      ...(values.mediaType === "google-slides" ? { gurl: values.mediaUrl } :
-          values.mediaType === "youtube" ? { yurl: values.mediaUrl } :
-          { url: values.mediaUrl }),
-    }] : undefined;
-
-    updateSection(editingSection.slug, {
-      title: values.title,
-      author: values.author || undefined,
-      authorUrl: values.authorUrl || undefined,
-      description: values.description || undefined,
-      content: values.content || undefined,
-      media,
-      buttonLabel: values.buttonLabel || undefined,
-      buttonUrl: values.buttonUrl || undefined,
+    await fetch("/api/sections", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug: editingSection.slug,
+        title: values.title, author: values.author || undefined,
+        authorUrl: values.authorUrl || undefined, description: values.description || undefined,
+        content: values.content || undefined,
+        media: buildMedia(values),
+        buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
+      }),
     });
     markChanged();
     notifyChange("know-more", "edit", values.title);
     setEditingSection(null);
-    refresh();
+    fetchSections();
   }
 
-  function handleDelete(section: ContentSection) {
+  async function handleDelete(section: ContentSection) {
     if (confirm(`Delete "${section.title}"?`)) {
-      deleteSection(section.slug);
+      await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
       markChanged();
       notifyChange("know-more", "delete", section.title);
-      refresh();
+      fetchSections();
     }
   }
 
@@ -117,7 +122,6 @@ export default function KnowMoreSection() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className="p-8 md:p-16 space-y-12"
-      key={refreshKey}
     >
       <div className="flex items-center justify-between">
         <h2
