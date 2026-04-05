@@ -179,5 +179,137 @@
         ]
       }
     ]
+  },
+  {
+    "slug": "3g-north-luzon",
+    "title": "NORTH LUZON",
+    "parentSlug": "report-3g",
+    "order": 7,
+    "slides": [
+      {
+        "slug": "3g-nl-main-slide",
+        "title": "",
+        "layout": "single",
+        "order": 1,
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          }
+        ]
+      },
+      {
+        "slug": "3g-nl-detailed-links",
+        "title": "",
+        "layout": "double",
+        "order": 2,
+        "backgroundImage": "/ice-bg.jpg",
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          },
+          {
+            "type": "text",
+            "content": "<div class='flex flex-col gap-3 font-mono text-sm underline tracking-wide'><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Site Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Neighboring Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM External Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Channel Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Carrier Report RAN Report GSM</a><ul class='list-disc pl-5 mt-4 no-underline'><li><a href='#' class='underline hover:text-nasa-light-cyan transition-colors'>List of NEs per BSC</a></li></ul></div>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "3g-ncr",
+    "title": "NATIONAL CAPITAL REGION",
+    "parentSlug": "report-3g",
+    "order": 8,
+    "slides": [
+      {
+        "slug": "3g-ncr-main-slide",
+        "title": "",
+        "layout": "single",
+        "order": 1,
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "lte-north-luzon",
+    "title": "NORTH LUZON",
+    "parentSlug": "report-lte",
+    "order": 7,
+    "slides": [
+      {
+        "slug": "lte-nl-main-slide",
+        "title": "",
+        "layout": "single",
+        "order": 1,
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          }
+        ]
+      },
+      {
+        "slug": "lte-nl-detailed-links",
+        "title": "",
+        "layout": "double",
+        "order": 2,
+        "backgroundImage": "/ice-bg.jpg",
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          },
+          {
+            "type": "text",
+            "content": "<div class='flex flex-col gap-3 font-mono text-sm underline tracking-wide'><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Site Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Neighboring Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM External Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Channel Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Cell Report RAN Report GSM</a><a href='#' class='hover:text-nasa-light-cyan transition-colors'>GSM Carrier Report RAN Report GSM</a><ul class='list-disc pl-5 mt-4 no-underline'><li><a href='#' class='underline hover:text-nasa-light-cyan transition-colors'>List of NEs per BSC</a></li></ul></div>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "lte-ncr",
+    "title": "NATIONAL CAPITAL REGION",
+    "parentSlug": "report-lte",
+    "order": 8,
+    "slides": [
+      {
+        "slug": "lte-ncr-main-slide",
+        "title": "",
+        "layout": "single",
+        "order": 1,
+        "columns": [
+          {
+            "type": "media",
+            "media": {
+              "type": "google-slides",
+              "gurl": "https://docs.google.com/presentation/d/1uQRrNHJ4Kia2O0p68IQobAWce4lVzXgQMdW7e-47nMU/edit?slide=id.g183393a071_0_156#slide=id.g183393a071_0_156"
+            }
+          }
+        ]
+      }
+    ]
   }
 ]

@@ -23,7 +23,7 @@ export default function Header() {
             {/* The absolute positioning and max-w-none prevents the image from affecting the layout size */}
             <Image src="/broadcast.gif" alt="SCC RAN Logo" width={54} height={54} unoptimized className="absolute max-w-none object-contain" />
           </div>
-          <span className="font-display text-2xl tracking-tighter z-10">SCC RAN</span>
+          <span className="font-display text-2xl tracking-tighter z-10">NASA</span>
         </div>
 
         {/* Nav Links */}

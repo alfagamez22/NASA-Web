@@ -2,13 +2,12 @@
 
 import { motion } from "framer-motion";
 import { getCategoriesByParent } from "@/lib/content-service";
-import ToolCard from "@/components/ui/ToolCard";
 import CollapsibleCategory from "@/components/ui/CollapsibleCategory";
-import Marquee from "@/components/layout/Marquee";
 import { CONTACT_NUMBERS } from "@/lib/constants";
 
 export default function HomeSection() {
   const categories = getCategoriesByParent("home");
+  const backgroundVideoOpacity = 10.08; // adjust this value to make the video more or less visible
 
   return (
     <motion.div
@@ -17,26 +16,13 @@ export default function HomeSection() {
       exit={{ opacity: 0 }}
       className="space-y-0"
     >
-      <div
+      {/* <div
         className="hero-banner relative min-h-[70vh] flex flex-col justify-center overflow-hidden"
-        style={{ borderBottom: "2px solid var(--border-color)" }}
+        style={{ borderBottom: "2px solid var(--border-color)", background: "radial-gradient(circle at top, rgba(5, 40, 80, 0.3), rgba(2, 8, 18, 0.95))" }}
       >
-        {/* Background Video */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover z-0"
-          style={{ objectPosition: "50% 20%" }}
-        >
-          <source src="/BACKGROUND.mp4" type="video/mp4" />
-        </video>
-
-        {/* Gradient Overlay */}
         <div
           className="absolute inset-0 z-10"
-          style={{ background: "linear-gradient(rgba(0, 5, 10, 0.6), rgba(0, 5, 10, 0.8))" }}
+          style={{ background: "linear-gradient(rgba(0, 2, 8, 0.55), rgba(0, 0, 0, 0.9))" }}
         />
 
         <div className="relative z-20 p-8 md:p-16">
@@ -60,35 +46,32 @@ export default function HomeSection() {
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Marquee */}
-      <Marquee />
+      </div> */}
 
       {/* Tool Categories Grid — dynamically loaded from content service */}
-      <div className="tool-categories-wrapper w-full overflow-hidden bg-nasa-darker" style={{ borderBottom: "2px solid var(--border-color)" }}>
-        {/* Animated Background Video */}
+      <div className="tool-categories-wrapper w-full overflow-hidden bg-nasa-darker" style={{ position: "relative", zIndex: 0, backgroundColor: "rgba(0, 8, 20, 1)" }}>
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ opacity: 0.05, mixBlendMode: "overlay", zIndex: 0 }}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: backgroundVideoOpacity, mixBlendMode: "overlay", zIndex: 0 }}
         >
           <source src="/SERVERRACKSBEHIND.mp4" type="video/mp4" />
         </video>
 
-        {/* Blue Tint Overlay */}
         <div 
           className="absolute inset-0 pointer-events-none" 
-          style={{ backgroundColor: "rgba(0, 10, 20, 0.8)", mixBlendMode: "overlay", zIndex: 5 }}
+          style={{ backgroundColor: "rgba(0, 10, 20, 0.88)", zIndex: 5 }}
         />
 
-        <div className="scrollable-row relative z-10 flex flex-col md:flex-row transition-all duration-300 w-full no-scrollbar">
-          {categories.map((category) => (
-            <CollapsibleCategory key={category.slug} category={category} />
-          ))}
+        <div className="scrollable-row relative z-10 flex flex-col items-center justify-center transition-all duration-300 w-full no-scrollbar px-4 py-10">
+          <div className="w-full max-w-[1500px] flex flex-col md:flex-row md:justify-center gap-4">
+            {categories.map((category) => (
+              <CollapsibleCategory key={category.slug} category={category} />
+            ))}
+          </div>
         </div>
       </div>
 
