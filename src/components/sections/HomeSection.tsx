@@ -128,19 +128,19 @@ export default function HomeSection() {
 
         <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: "rgba(0, 10, 20, 0.88)", zIndex: 5 }} />
 
-        <div className="scrollable-row relative z-10 flex flex-col items-center justify-center transition-all duration-300 w-full no-scrollbar px-4 py-10">
-          {/* Add Category Button (Edit Mode) */}
-          {isEditMode && (
-            <div className="w-full max-w-[1500px] flex justify-end mb-4">
-              <button
-                onClick={() => setShowCategoryModal(true)}
-                className="nasa-btn text-xs flex items-center gap-1"
-              >
-                <Plus size={14} /> ADD CATEGORY
-              </button>
-            </div>
-          )}
+        {/* Add Category Button (Edit Mode) — outside scrollable-row to avoid row-direction layout bug */}
+        {isEditMode && (
+          <div className="relative z-10 w-full flex justify-end px-8 pt-6 pb-2">
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="nasa-btn text-xs flex items-center gap-1"
+            >
+              <Plus size={14} /> ADD CATEGORY
+            </button>
+          </div>
+        )}
 
+        <div className="scrollable-row relative z-10 flex flex-col items-center justify-center transition-all duration-300 w-full no-scrollbar px-4 pt-4 pb-10">
           <div className="w-full max-w-[1500px] flex flex-col md:flex-row md:justify-center gap-4">
             {categories.map((category) => (
               <div key={category.slug} className="relative group/cat flex-1 min-w-0">
