@@ -4,19 +4,22 @@ import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, Bell, Check, ArrowUpDown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getUsers,
-  createUser,
-  updateUser,
-  deleteUser,
   getNotifications,
   markAllNotificationsRead,
   clearNotifications,
   markNotificationRead,
   getViewerPermissions,
   setViewerPagePermissions,
-  type UserAccount,
   type Notification,
 } from "@/lib/data-store";
+
+interface DBUser {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+  createdAt?: string;
+}
 
 interface AdminSettingsPanelProps {
   isOpen: boolean;
@@ -38,9 +41,9 @@ const ALL_PAGES = [
 export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPanelProps) {
   const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<"account" | "users" | "notifications">("users");
-  const [users, setUsersState] = useState<UserAccount[]>([]);
+  const [users, setUsersState] = useState<DBUser[]>([]);
   const [notifications, setNotificationsState] = useState<Notification[]>([]);
-  const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
+  const [editingUser, setEditingUser] = useState<DBUser | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [permUserId, setPermUserId] = useState<string | null>(null);
 
@@ -64,8 +67,14 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
     }
   }, [isOpen]);
 
-  function refreshList() {
-    setUsersState(getUsers());
+  async function refreshList() {
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsersState(data);
+      }
+    } catch { /* ignore */ }
     setNotificationsState(getNotifications());
   }
 
@@ -78,39 +87,62 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
     setIsCreating(false);
   }
 
-  function handleCreateUser() {
+  async function handleCreateUser() {
     if (!formUsername || !formPassword || !formDisplayName) return;
-    createUser({ username: formUsername, password: formPassword, displayName: formDisplayName, role: formRole });
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: formUsername, password: formPassword, displayName: formDisplayName, role: formRole }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Failed to create user");
+        return;
+      }
+    } catch { alert("Network error"); return; }
     resetForm();
     refreshList();
   }
 
-  function handleUpdateUser() {
+  async function handleUpdateUser() {
     if (!editingUser) return;
-    const updates: Partial<UserAccount> = {};
-    if (formUsername) updates.username = formUsername;
-    if (formPassword) updates.password = formPassword;
-    if (formDisplayName) updates.displayName = formDisplayName;
-    updates.role = formRole;
-    updateUser(editingUser.id, updates);
+    const body: Record<string, string> = { id: editingUser.id, role: formRole };
+    if (formDisplayName) body.displayName = formDisplayName;
+    if (formPassword) body.password = formPassword;
+    try {
+      await fetch("/api/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch { /* ignore */ }
     resetForm();
     refreshList();
   }
 
-  function handleDeleteUser(id: string) {
+  async function handleDeleteUser(id: string) {
     if (confirm("Delete this user?")) {
-      deleteUser(id);
+      try {
+        await fetch(`/api/users?id=${id}`, { method: "DELETE" });
+      } catch { /* ignore */ }
       refreshList();
     }
   }
 
-  function handleToggleRole(u: UserAccount) {
+  async function handleToggleRole(u: DBUser) {
     const newRole = u.role === "editor" ? "viewer" : "editor";
-    updateUser(u.id, { role: newRole });
+    try {
+      await fetch("/api/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: u.id, role: newRole }),
+      });
+    } catch { /* ignore */ }
     refreshList();
   }
 
-  function startEdit(u: UserAccount) {
+  function startEdit(u: DBUser) {
     setEditingUser(u);
     setFormUsername(u.username);
     setFormPassword("");
@@ -136,12 +168,17 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
     setPermPages((prev) => (prev.includes(slug) ? prev.filter((p) => p !== slug) : [...prev, slug]));
   }
 
-  function handleUpdateAdmin() {
+  async function handleUpdateAdmin() {
     if (!user) return;
-    const updates: Partial<UserAccount> = {};
-    if (adminUsername) updates.username = adminUsername;
-    if (adminPassword) updates.password = adminPassword;
-    updateUser(user.id, updates);
+    const body: Record<string, string> = { id: user.id };
+    if (adminPassword) body.password = adminPassword;
+    try {
+      await fetch("/api/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch { /* ignore */ }
     refreshUser();
     setAdminMsg("Admin credentials updated.");
     setAdminUsername("");
