@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import ImageUpload from "./ImageUpload";
 
 export interface FormField {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "select" | "url";
+  type?: "text" | "textarea" | "select" | "url" | "image";
   options?: { value: string; label: string }[];
   placeholder?: string;
   required?: boolean;
@@ -72,6 +73,12 @@ export default function ItemFormModal({ isOpen, onClose, title, fields, initialV
                   <option value="">Select...</option>
                   {field.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+              ) : field.type === "image" ? (
+                <ImageUpload
+                  value={values[field.key] || ""}
+                  onChange={(dataUrl) => setValues((v) => ({ ...v, [field.key]: dataUrl }))}
+                  placeholder={field.placeholder}
+                />
               ) : (
                 <input
                   type={field.type === "url" ? "url" : "text"}

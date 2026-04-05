@@ -11,12 +11,12 @@ import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 const SPINE_FIELDS: FormField[] = [
   { key: "name", label: "Name", required: true },
   { key: "role", label: "Role / Title", required: true },
-  { key: "img", label: "Image URL", required: true, placeholder: "https://picsum.photos/seed/name/400/500" },
+  { key: "img", label: "Photo", type: "image" },
 ];
 
 const MEMBER_FIELDS: FormField[] = [
   { key: "name", label: "Name", required: true },
-  { key: "img", label: "Image URL", required: true, placeholder: "https://picsum.photos/seed/name/400/500" },
+  { key: "img", label: "Photo", type: "image" },
 ];
 
 const TEAM_FIELDS: FormField[] = [
@@ -162,7 +162,7 @@ function EngrCard({ name, img, isEditMode, onEdit, onDelete }: { name: string; i
       style={{ border: "1px solid rgba(0,255,255,0.15)" }}
     >
       {isEditMode && onEdit && onDelete && <EditOverlay onEdit={onEdit} onDelete={onDelete} />}
-      <div className="h-40 overflow-hidden">
+      <div className="h-44 overflow-hidden">
         <img
           src={img}
           alt={name}
@@ -170,14 +170,14 @@ function EngrCard({ name, img, isEditMode, onEdit, onDelete }: { name: string; i
           referrerPolicy="no-referrer"
         />
       </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
       <div className="absolute top-1.5 left-1.5">
         <span className="text-[8px] font-mono text-cyan-400/80 bg-black/60 border border-cyan-500/20 px-1.5 py-0.5 rounded">
           ENGR
         </span>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 p-2">
-        <p className="text-white text-[10px] font-bold uppercase leading-tight">{name}</p>
+      <div className="absolute bottom-0 left-0 right-0 p-2.5">
+        <p className="text-white text-xs font-bold uppercase leading-tight">{name}</p>
       </div>
     </div>
   );
