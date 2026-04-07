@@ -53,6 +53,13 @@ export async function PUT(req: NextRequest) {
   if (body.displayName) data.displayName = body.displayName;
   if (body.role) data.role = body.role;
   if (body.password) data.passwordHash = await bcrypt.hash(body.password, 12);
+  if (body.username) {
+    const existing = await prisma.user.findUnique({ where: { username: body.username } });
+    if (existing && existing.id !== body.id) {
+      return NextResponse.json({ error: "Username already exists" }, { status: 409 });
+    }
+    data.username = body.username;
+  }
 
   const user = await prisma.user.update({
     where: { id: body.id },

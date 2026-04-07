@@ -18,6 +18,8 @@ interface PendingContextType {
   myPending: EditorPending[];
   /** Check if an entity has a pending change (by entityRef pattern match) */
   isPending: (entityRef: string) => boolean;
+  /** Get pending "add" changes for a specific page */
+  getPendingAdds: (page: string) => EditorPending[];
   /** Recently approved/declined items (for editor notification) */
   resolved: EditorPending[];
   /** Unread resolved count */
@@ -78,6 +80,13 @@ export function PendingChangesProvider({ children }: { children: ReactNode }) {
     [myPending]
   );
 
+  const getPendingAdds = useCallback(
+    (page: string): EditorPending[] => {
+      return myPending.filter((p) => p.changeType === "add" && p.page === page);
+    },
+    [myPending]
+  );
+
   const unresolvedCount = resolved.filter((r) => !seenIds.has(r.id)).length;
 
   const markResolvedSeen = useCallback(() => {
@@ -85,7 +94,7 @@ export function PendingChangesProvider({ children }: { children: ReactNode }) {
   }, [resolved]);
 
   return (
-    <PendingContext.Provider value={{ myPending, isPending, resolved, unresolvedCount, markResolvedSeen, refresh }}>
+    <PendingContext.Provider value={{ myPending, isPending, getPendingAdds, resolved, unresolvedCount, markResolvedSeen, refresh }}>
       {children}
     </PendingContext.Provider>
   );

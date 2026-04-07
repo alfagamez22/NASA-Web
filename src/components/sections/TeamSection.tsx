@@ -282,7 +282,7 @@ function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMembe
 
 export default function TeamSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const { isPending } = usePendingChanges();
+  const { isPending, getPendingAdds } = usePendingChanges();
   const [spine, setSpine] = useState<SpineMember[]>([]);
   const [teams, setTeams] = useState<TeamData[]>([]);
 
@@ -522,6 +522,14 @@ export default function TeamSection() {
         {isEditMode && (
           <button onClick={handleAddSpine} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={14} /> Add Spine Member</button>
         )}
+        {/* Pending add ghost cards for team page */}
+        {getPendingAdds("team").map((p) => (
+          <div key={p.id} className="relative pending-add-highlight nasa-card opacity-70 w-64" style={{ minHeight: 80, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+            <span className="pending-add-badge">PENDING</span>
+            <p className="font-mono text-sm text-green-400 uppercase tracking-wider">{p.itemName}</p>
+            <p className="font-mono text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Awaiting approval</p>
+          </div>
+        ))}
 
         {/* ── T-Branch + Team columns ─────────────────────────────────────── */}
         <div className="relative w-full max-w-5xl">

@@ -39,7 +39,7 @@ const SECTION_FIELDS: FormField[] = [
 
 export default function KnowMoreSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const { isPending } = usePendingChanges();
+  const { isPending, getPendingAdds } = usePendingChanges();
   const { isRecentlyChanged, refresh: refreshHighlights } = useHighlight();
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,6 +199,14 @@ export default function KnowMoreSection() {
           </ChangeHighlight>
         );
         })}
+        {/* Pending add ghost cards */}
+        {getPendingAdds("know-more").map((p) => (
+          <div key={p.id} className="relative pending-add-highlight nasa-card opacity-70" style={{ minHeight: 120, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <span className="pending-add-badge">PENDING</span>
+            <p className="font-mono text-sm text-green-400 uppercase tracking-wider">{p.itemName}</p>
+            <p className="font-mono text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Awaiting approval</p>
+          </div>
+        ))}
       </div>
 
       <ItemFormModal

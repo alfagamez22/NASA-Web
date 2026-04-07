@@ -27,7 +27,7 @@ const TOOL_FIELDS: FormField[] = [
 
 export default function HomeSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const { isPending } = usePendingChanges();
+  const { isPending, getPendingAdds } = usePendingChanges();
   const { refresh: refreshHighlights } = useHighlight();
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -236,6 +236,14 @@ export default function HomeSection() {
               </ChangeHighlight>
             );
             })}
+            {/* Pending add ghost cards */}
+            {getPendingAdds("home").map((p) => (
+              <div key={p.id} className="relative pending-add-highlight nasa-card opacity-70 flex-1 min-w-0" style={{ minHeight: 80, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <span className="pending-add-badge">PENDING</span>
+                <p className="font-mono text-sm text-green-400 uppercase tracking-wider">{p.itemName}</p>
+                <p className="font-mono text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Awaiting approval</p>
+              </div>
+            ))}
           </div>
 
         </div>

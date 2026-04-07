@@ -170,8 +170,8 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
   };
 
   const handleChangeCredentials = async () => {
-    if (!newPassword.trim()) {
-      alert("Please enter a new password");
+    if (!newUsername.trim() && !newPassword.trim()) {
+      alert("Please enter a new username or password");
       return;
     }
 
@@ -184,8 +184,9 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
       const superadminUser = users.find((u: { role: string }) => u.role === "super_admin");
       if (!superadminUser) { alert("Superadmin user not found"); return; }
 
-      const body: Record<string, string> = { id: superadminUser.id, password: newPassword };
-      if (newUsername.trim()) body.displayName = newUsername;
+      const body: Record<string, string> = { id: superadminUser.id };
+      if (newUsername.trim()) body.username = newUsername.trim();
+      if (newPassword.trim()) body.password = newPassword.trim();
 
       const res = await fetch("/api/users", {
         method: "PUT",
@@ -486,12 +487,12 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
                         <div className="flex gap-2">
                           <button
                             onClick={handleChangeCredentials}
-                            disabled={isLoading || !newUsername.trim() || !newPassword.trim()}
+                            disabled={isLoading || (!newUsername.trim() && !newPassword.trim())}
                             className="px-3 py-2 rounded text-xs uppercase font-mono transition-all hover:scale-105"
                             style={{
                               border: "1px solid var(--accent-color)",
                               color: "var(--accent-color)",
-                              opacity: isLoading || !newUsername.trim() || !newPassword.trim() ? 0.5 : 1,
+                              opacity: isLoading || (!newUsername.trim() && !newPassword.trim()) ? 0.5 : 1,
                             }}
                           >
                             CONFIRM CHANGE

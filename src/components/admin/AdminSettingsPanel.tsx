@@ -226,16 +226,35 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
 
   async function handleUpdateAdmin() {
     if (!user) return;
-    const body: Record<string, string> = { id: user.id };
+    // Find the admin user from the users list
+    const adminUser = users.find((u) => u.role === "admin");
+    if (!adminUser) {
+      setAdminMsg("Admin account not found.");
+      setTimeout(() => setAdminMsg(""), 3000);
+      return;
+    }
+    const body: Record<string, string> = { id: adminUser.id };
+    if (adminUsername.trim()) body.username = adminUsername.trim();
     if (adminPassword) body.password = adminPassword;
+    if (!body.username && !body.password) {
+      setAdminMsg("Please enter a new username or password.");
+      setTimeout(() => setAdminMsg(""), 3000);
+      return;
+    }
     try {
-      await fetch("/api/users", {
+      const res = await fetch("/api/users", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setAdminMsg(err.error || "Failed to update admin credentials.");
+        setTimeout(() => setAdminMsg(""), 3000);
+        return;
+      }
     } catch { /* ignore */ }
-    refreshUser();
+    refreshList();
     setAdminMsg("Admin credentials updated.");
     setAdminUsername("");
     setAdminPassword("");
@@ -320,35 +339,50 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
           {/* ── Account Tab ──────────────────────────────────────────── */}
           {activeTab === "account" && (
             <div className="space-y-4">
-              <h3 className="font-display text-xl uppercase" style={{ color: "var(--accent-color)" }}>
-                CHANGE ADMIN CREDENTIALS
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="font-mono text-xs uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>New Username</label>
-                  <input
-                    type="text"
-                    value={adminUsername}
-                    onChange={(e) => setAdminUsername(e.target.value)}
-                    placeholder={user?.username}
-                    className="w-full p-2 mt-1 font-mono text-sm bg-transparent outline-none"
-                    style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
-                  />
-                </div>
-                <div>
-                  <label className="font-mono text-xs uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>New Password</label>
-                  <input
-                    type="password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full p-2 mt-1 font-mono text-sm bg-transparent outline-none"
-                    style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
-                  />
-                </div>
-                <button onClick={handleUpdateAdmin} className="nasa-btn text-sm">UPDATE</button>
-                {adminMsg && <p className="font-mono text-xs text-green-400">{adminMsg}</p>}
-              </div>
+              {(() => {
+                const adminUser = users.find((u) => u.role === "admin");
+                return (
+                  <>
+                    <h3 className="font-display text-xl uppercase" style={{ color: "var(--accent-color)" }}>
+                      CHANGE ADMIN CREDENTIALS
+                    </h3>
+                    {!adminUser && (
+                      <p className="font-mono text-xs text-amber-400">No admin account found in the system.</p>
+                    )}
+                    {adminUser && (
+                      <p className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
+                        Current admin username: <span style={{ color: "var(--text-primary)" }}>@{adminUser.username}</span>
+                      </p>
+                    )}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="font-mono text-xs uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>New Username</label>
+                        <input
+                          type="text"
+                          value={adminUsername}
+                          onChange={(e) => setAdminUsername(e.target.value)}
+                          placeholder={adminUser?.username ?? "admin"}
+                          className="w-full p-2 mt-1 font-mono text-sm bg-transparent outline-none"
+                          style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                        />
+                      </div>
+                      <div>
+                        <label className="font-mono text-xs uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>New Password</label>
+                        <input
+                          type="password"
+                          value={adminPassword}
+                          onChange={(e) => setAdminPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full p-2 mt-1 font-mono text-sm bg-transparent outline-none"
+                          style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                        />
+                      </div>
+                      <button onClick={handleUpdateAdmin} className="nasa-btn text-sm" disabled={!adminUser}>UPDATE</button>
+                      {adminMsg && <p className="font-mono text-xs text-green-400">{adminMsg}</p>}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 

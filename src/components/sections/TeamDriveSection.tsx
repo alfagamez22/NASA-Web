@@ -28,7 +28,7 @@ const RAN_CONFIG_PPM_URL = "https://drive.google.com/...";
 
 export default function TeamDriveSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const { isPending } = usePendingChanges();
+  const { isPending, getPendingAdds } = usePendingChanges();
   const { refresh: refreshHighlights } = useHighlight();
   const [drive, setDrive] = useState<TeamDriveCategory[]>([]);
 
@@ -234,6 +234,14 @@ export default function TeamDriveSection() {
         {/* Dynamic Category Rows */}
         {drive.map((cat, catIdx) => (
           <CategoryRow key={cat.id} cat={cat} catIdx={catIdx} />
+        ))}
+        {/* Pending add ghost cards */}
+        {getPendingAdds("team-drive").map((p) => (
+          <div key={p.id} className="relative pending-add-highlight nasa-card opacity-70 w-full" style={{ minHeight: 80, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <span className="pending-add-badge">PENDING</span>
+            <p className="font-mono text-sm text-green-400 uppercase tracking-wider">{p.itemName}</p>
+            <p className="font-mono text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Awaiting approval</p>
+          </div>
         ))}
         {isEditMode && (
           <button onClick={handleAddCategory} className="nasa-btn text-sm flex items-center gap-2 mx-auto"><Plus size={16} /> Add Category</button>

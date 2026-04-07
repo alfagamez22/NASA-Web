@@ -14,6 +14,7 @@ interface ReportSlide {
   id: string;
   label: string;
   gurl: string;
+  description?: string;
   colSpan?: number;
 }
 
@@ -23,11 +24,12 @@ const DEFAULT_SLIDES: ReportSlide[] = [
   { id: "bottom", label: "BOTTOM", gurl: "https://docs.google.com/presentation/d/1rDwQYbOKt2HN9sdf2brkJl_QB3uxzSv088CozCp80rg/edit?slide=id.g5d479e855d_0_25#slide=id.g5d479e855d_0_25", colSpan: 2 },
 ];
 
-function sectionsToSlides(sections: Array<{ slug: string; title: string; colSpan?: number; media?: Array<{ gurl?: string }> }>): ReportSlide[] {
+function sectionsToSlides(sections: Array<{ slug: string; title: string; description?: string; colSpan?: number; media?: Array<{ gurl?: string }> }>): ReportSlide[] {
   return sections.map((s) => ({
     id: s.slug,
     label: s.title,
     gurl: s.media?.[0]?.gurl || "",
+    description: s.description || "",
     colSpan: s.colSpan ?? 1,
   }));
 }
@@ -35,14 +37,27 @@ function sectionsToSlides(sections: Array<{ slug: string; title: string; colSpan
 function generateSlug() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 const SLIDE_FIELDS: FormField[] = [
-  { key: "label", label: "Label", required: true, placeholder: "e.g. LEFT, RIGHT, BOTTOM" },
-  { key: "gurl", label: "Google Slides URL", type: "url", required: true },
+  { key: "label", label: "Title", required: true, placeholder: "e.g. LEFT, RIGHT, BOTTOM" },
+  { key: "description", label: "Description", type: "textarea", placeholder: "Optional description" },
+  { key: "mediaType", label: "Media Type", type: "select", options: [
+    { value: "google-slides", label: "Google Slides (gurl)" },
+    { value: "youtube", label: "YouTube (yurl)" },
+    { value: "image", label: "Image" },
+    { value: "iframe", label: "iFrame (url)" },
+  ]},
+  {
+    key: "gurl",
+    label: "Media URL / Image",
+    type: "url",
+    placeholder: "Paste gurl/yurl/url here (optional)",
+    conditionalImage: { watchKey: "mediaType", whenValue: "image" },
+  },
   { key: "colSpan", label: "Column Span", type: "select", options: [{ value: "1", label: "1" }, { value: "2", label: "2" }] },
 ];
 
 export default function ReportSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const { isPending } = usePendingChanges();
+  const { isPending, getPendingAdds } = usePendingChanges();
   const { refresh: refreshHighlights } = useHighlight();
   const [slides, setSlides] = useState<ReportSlide[]>(DEFAULT_SLIDES);
   const [loaded, setLoaded] = useState(false);
@@ -65,7 +80,7 @@ export default function ReportSection() {
   function handleAdd() { setModal({ mode: "add" }); }
   function handleEdit(idx: number) {
     const s = slides[idx];
-    setModal({ mode: "edit", idx, init: { label: s.label, gurl: s.gurl, colSpan: String(s.colSpan ?? 1) } });
+    setModal({ mode: "edit", idx, init: { label: s.label, gurl: s.gurl, description: (s as ReportSlide & { description?: string }).description || "", mediaType: "google-slides", colSpan: String(s.colSpan ?? 1) } });
   }
 
   async function handleDelete(idx: number) {
@@ -83,12 +98,24 @@ export default function ReportSection() {
 
   async function handleSubmit(vals: Record<string, string>) {
     const colSpan = parseInt(vals.colSpan) || 1;
+    const mediaType = vals.mediaType || "google-slides";
+    const mediaUrl = vals.gurl || "";
+    const buildMedia = () => {
+      if (!mediaUrl) return undefined;
+      return [{
+        type: mediaType,
+        ...(mediaType === "google-slides" ? { gurl: mediaUrl } :
+            mediaType === "youtube" ? { yurl: mediaUrl } :
+            { url: mediaUrl }),
+      }];
+    };
     if (modal?.mode === "edit" && modal.idx != null) {
       const slide = slides[modal.idx];
       const previous = { label: slide.label, gurl: slide.gurl, colSpan: slide.colSpan };
       const apiBody = {
         slug: slide.id, title: vals.label, colSpan,
-        media: [{ type: "google-slides", gurl: vals.gurl }],
+        description: vals.description || undefined,
+        media: buildMedia() ?? [{ type: "google-slides", gurl: mediaUrl }],
       };
       const applied = await notifyChange("report", "edit", vals.label, `ReportSlide:id:${slide.id}`, {
         apiUrl: "/api/sections", apiMethod: "PUT", apiBody, previous,
@@ -107,7 +134,8 @@ export default function ReportSection() {
       const slug = generateSlug();
       const apiBody = {
         slug, title: vals.label, parentSlug: "report", order: slides.length, colSpan,
-        media: [{ type: "google-slides", gurl: vals.gurl }],
+        description: vals.description || undefined,
+        media: buildMedia() ?? [{ type: "google-slides", gurl: mediaUrl }],
       };
       const applied = await notifyChange("report", "add", vals.label, `ContentSection:slug:${slug}`, {
         apiUrl: "/api/sections", apiMethod: "POST", apiBody,
@@ -170,16 +198,34 @@ export default function ReportSection() {
                   <button onClick={() => handleDelete(idx)} className="p-1 bg-red-600/80 rounded hover:bg-red-500"><Trash2 size={12} /></button>
                 </div>
               )}
-              {slide.gurl ? (
-                <MediaEmbed media={{ type: "google-slides", gurl: slide.gurl }} />
-              ) : (
-                <div className="nasa-card w-full h-[400px] flex items-center justify-center bg-black/20" style={{ border: "2px dashed var(--border-color)" }}>
-                  <span className="font-mono text-nasa-gray">EMPTY SLOT ({slide.label})</span>
+              <div className="nasa-card overflow-hidden" style={{ border: "1px solid var(--border-color-strong)" }}>
+                {/* Card Title */}
+                <div className="p-4 border-b" style={{ borderColor: "var(--border-color)" }}>
+                  <h4 className="font-display text-xl uppercase tracking-wider" style={{ color: "var(--accent-color)", textShadow: "0 0 8px var(--glow-color)" }}>{slide.label}</h4>
+                  {slide.description && (
+                    <p className="font-mono text-xs mt-1" style={{ color: "var(--text-secondary)" }}>{slide.description}</p>
+                  )}
                 </div>
-              )}
+                {/* Media */}
+                {slide.gurl ? (
+                  <MediaEmbed media={{ type: "google-slides", gurl: slide.gurl }} />
+                ) : (
+                  <div className="w-full h-[300px] flex items-center justify-center bg-black/20" style={{ border: "2px dashed var(--border-color)" }}>
+                    <span className="font-mono text-nasa-gray">NO MEDIA — {slide.label}</span>
+                  </div>
+                )}
+              </div>
             </ChangeHighlight>
             );
             })}
+          {/* Pending add ghost cards */}
+          {getPendingAdds("report").map((p) => (
+            <div key={p.id} className="relative pending-add-highlight nasa-card opacity-70" style={{ minHeight: 120, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <span className="pending-add-badge">PENDING</span>
+              <p className="font-mono text-sm text-green-400 uppercase tracking-wider">{p.itemName}</p>
+              <p className="font-mono text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Awaiting approval</p>
+            </div>
+          ))}
         </div>
         {isEditMode && (
           <button onClick={handleAdd} className="nasa-btn text-sm flex items-center gap-2 mx-auto"><Plus size={14} /> Add Slide</button>
@@ -188,7 +234,7 @@ export default function ReportSection() {
 
       <ItemFormModal isOpen={!!modal} onClose={() => setModal(null)}
         title={modal?.mode === "edit" ? "Edit Slide" : "Add Slide"}
-        fields={SLIDE_FIELDS} initialValues={modal?.init ?? { colSpan: "1" }} onSubmit={handleSubmit}
+        fields={SLIDE_FIELDS} initialValues={modal?.init ?? { colSpan: "1", mediaType: "google-slides" }} onSubmit={handleSubmit}
       />
     </motion.div>
   );

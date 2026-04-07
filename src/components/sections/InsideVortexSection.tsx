@@ -48,7 +48,7 @@ export default function InsideVortexSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const { isEditMode, markChanged, notifyChange } = useEditMode();
-  const { isPending } = usePendingChanges();
+  const { isPending, getPendingAdds } = usePendingChanges();
   const { refresh: refreshHighlights } = useHighlight();
   const [data, setData] = useState<VortexData>({ categories: [], credits: [] });
 
@@ -517,6 +517,18 @@ export default function InsideVortexSection() {
                     </div>
                     {isEditMode && (
                       <button onClick={handleAddCat} className="nasa-btn text-sm flex items-center gap-2 mx-auto mb-4"><Plus size={14} /> Add Category</button>
+                    )}
+                    {/* Pending add ghost cards for inside-vortex */}
+                    {getPendingAdds("inside-vortex").length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 w-full pb-8">
+                        {getPendingAdds("inside-vortex").map((p) => (
+                          <div key={p.id} className="relative pending-add-highlight nasa-card opacity-70" style={{ minHeight: 100, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                            <span className="pending-add-badge">PENDING</span>
+                            <p className="font-mono text-sm text-green-400 uppercase tracking-wider">{p.itemName}</p>
+                            <p className="font-mono text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Awaiting approval</p>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </motion.div>
