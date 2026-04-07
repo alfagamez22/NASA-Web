@@ -95,7 +95,7 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
       alert("✓ " + result.message);
       
       // Refresh the logs list
-      await fetchLogs();
+      await fetchAuditLogs();
     } catch (error) {
       console.error("Error clearing logs:", error);
       alert("Error: Failed to clear audit logs. " + (error instanceof Error ? error.message : ""));
