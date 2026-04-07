@@ -22,7 +22,7 @@ export default function Header() {
   const pathname = usePathname() ?? "";
   const { user, isAdmin, isSuperAdmin, isEditor, logout } = useAuth();
   const { isEditMode, isCanvasMode, enterEditMode, cancelEdit, applyEdit, toggleCanvasMode, showCancelDialog, confirmCancel, denyCancelDialog } = useEditMode();
-  const { unresolvedCount } = usePendingChanges();
+  const { unresolvedCount, myPending } = usePendingChanges();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -44,12 +44,12 @@ export default function Header() {
 
   // Edit modal state
   const [editModal, setEditModal] = useState<{
-    mode: "edit-label" | "add-sub" | "edit-sub";
-    module: ModuleData;
+    mode: "edit-label" | "add-sub" | "edit-sub" | "add-module";
+    module?: ModuleData;
     subIdx?: number;
   } | null>(null);
   const [formDisplay, setFormDisplay] = useState("");
-  const [formFormat, setFormFormat] = useState<"A" | "B">("A");
+  const [formFormat, setFormFormat] = useState<string>("A");
 
   function openEditLabel(mod: ModuleData) {
     setFormDisplay(mod.display);
@@ -65,8 +65,13 @@ export default function Header() {
   function openEditSub(mod: ModuleData, idx: number) {
     const sub = (mod.subNav ?? [])[idx];
     setFormDisplay(sub?.display ?? "");
-    setFormFormat(sub?.format === "B" ? "B" : "A");
+    setFormFormat(sub?.format ?? "A");
     setEditModal({ mode: "edit-sub", module: mod, subIdx: idx });
+  }
+
+  function openAddModule() {
+    setFormDisplay("");
+    setEditModal({ mode: "add-module" });
   }
 
   async function saveModule(id: string, data: { display?: string; subNav?: SubNavItem[] }) {
@@ -81,13 +86,13 @@ export default function Header() {
   }
 
   function handleEditLabelSubmit() {
-    if (!editModal || !formDisplay.trim()) return;
+    if (!editModal || !editModal.module || !formDisplay.trim()) return;
     saveModule(editModal.module.id, { display: formDisplay.trim() });
     setEditModal(null);
   }
 
   function handleAddSubSubmit() {
-    if (!editModal || !formDisplay.trim()) return;
+    if (!editModal || !editModal.module || !formDisplay.trim()) return;
     const mod = editModal.module;
     const existing = mod.subNav ?? [];
     const slug = formDisplay.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
@@ -98,12 +103,33 @@ export default function Header() {
   }
 
   function handleEditSubSubmit() {
-    if (!editModal || editModal.subIdx === undefined || !formDisplay.trim()) return;
+    if (!editModal || editModal.subIdx === undefined || !formDisplay.trim() || !editModal.module) return;
     const mod = editModal.module;
     const subs = [...(mod.subNav ?? [])];
     subs[editModal.subIdx] = { ...subs[editModal.subIdx], display: formDisplay.trim().toUpperCase(), format: formFormat };
     saveModule(mod.id, { subNav: subs });
     setEditModal(null);
+  }
+
+  async function handleAddModuleSubmit() {
+    if (!formDisplay.trim()) return;
+    try {
+      await fetch("/api/modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ display: formDisplay.trim() }),
+      });
+    } catch { /* ignore */ }
+    setRefreshKey((k) => k + 1);
+    setEditModal(null);
+  }
+
+  async function handleDeleteModule(mod: ModuleData) {
+    if (!confirm(`Delete "${mod.display}" tab and all its sub-items?`)) return;
+    try {
+      await fetch(`/api/modules?id=${mod.id}`, { method: "DELETE" });
+    } catch { /* ignore */ }
+    setRefreshKey((k) => k + 1);
   }
 
   async function handleDeleteSub(mod: ModuleData, idx: number) {
@@ -178,10 +204,19 @@ export default function Header() {
                 {isEditMode && (
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditLabel(item._module); }}
-                    className="absolute top-1 right-1 z-50 p-0.5 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-7 z-50 p-0.5 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Edit Label"
                   >
                     <Edit2 size={10} />
+                  </button>
+                )}
+                {isEditMode && (
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteModule(item._module); }}
+                    className="absolute top-1 right-1 z-50 p-0.5 bg-black/80 text-red-400 hover:text-red-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Delete Module"
+                  >
+                    <Trash2 size={10} />
                   </button>
                 )}
 
@@ -239,6 +274,18 @@ export default function Header() {
               </div>
             );
           })}
+
+          {/* Add new top-level nav module button */}
+          {isEditMode && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAddModule(); }}
+              className="px-4 py-4 flex items-center gap-1 font-mono text-xs uppercase text-green-400 hover:text-green-300 hover:bg-nasa-blue/30 transition-all h-full"
+              style={{ borderRight: "2px solid var(--border-color)" }}
+              title="Add New Tab"
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
 
         {/* Controls */}
@@ -307,9 +354,9 @@ export default function Header() {
               title="Editor Notifications"
             >
               <Bell size={18} />
-              {unresolvedCount > 0 && (
+              {(unresolvedCount + myPending.filter(p => p.status === "pending").length) > 0 && (
                 <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full">
-                  {unresolvedCount}
+                  {unresolvedCount + myPending.filter(p => p.status === "pending").length}
                 </span>
               )}
             </button>
@@ -389,12 +436,13 @@ export default function Header() {
               <X size={18} />
             </button>
             <h3 className="font-display text-2xl uppercase" style={{ color: "var(--accent-color)" }}>
-              {editModal.mode === "edit-label" ? "EDIT NAV LABEL" : editModal.mode === "add-sub" ? "ADD SUB-ITEM" : "EDIT SUB-ITEM"}
+              {editModal.mode === "edit-label" ? "EDIT NAV LABEL" : editModal.mode === "add-module" ? "ADD NAV TAB" : editModal.mode === "add-sub" ? "ADD SUB-ITEM" : "EDIT SUB-ITEM"}
             </h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 if (editModal.mode === "edit-label") handleEditLabelSubmit();
+                else if (editModal.mode === "add-module") handleAddModuleSubmit();
                 else if (editModal.mode === "add-sub") handleAddSubSubmit();
                 else handleEditSubSubmit();
               }}
@@ -402,13 +450,13 @@ export default function Header() {
             >
               <div className="space-y-1">
                 <label className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-                  {editModal.mode === "edit-label" ? "Display Name" : "Sub-item Name"}
+                  {editModal.mode === "add-module" ? "Tab Name" : editModal.mode === "edit-label" ? "Display Name" : "Sub-item Name"}
                 </label>
                 <input
                   type="text"
                   value={formDisplay}
                   onChange={(e) => setFormDisplay(e.target.value)}
-                  placeholder="e.g. RAN REPORT"
+                  placeholder={editModal.mode === "add-module" ? "e.g. ANALYTICS" : "e.g. RAN REPORT"}
                   required
                   className="w-full p-2 font-mono text-sm bg-transparent outline-none"
                   style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
@@ -416,29 +464,33 @@ export default function Header() {
                 />
               </div>
 
-              {/* Format selector — only for sub-items */}
-              {editModal.mode !== "edit-label" && (
-                <div className="space-y-1">
+              {/* Format selector — for sub-items only */}
+              {(editModal.mode === "add-sub" || editModal.mode === "edit-sub") && (
+                <div className="space-y-2">
                   <label className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
                     Page Format
                   </label>
-                  <div className="flex gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer font-mono text-sm" style={{ color: formFormat === "A" ? "var(--accent-light)" : "var(--text-secondary)" }}>
-                      <input type="radio" name="format" value="A" checked={formFormat === "A"} onChange={() => setFormFormat("A")} className="accent-cyan-400" />
-                      FORMAT A
-                      <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>(RAN Report layout)</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer font-mono text-sm" style={{ color: formFormat === "B" ? "var(--accent-light)" : "var(--text-secondary)" }}>
-                      <input type="radio" name="format" value="B" checked={formFormat === "B"} onChange={() => setFormFormat("B")} className="accent-cyan-400" />
-                      FORMAT B
-                      <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>(Regional Report layout)</span>
-                    </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {[
+                      { value: "A", label: "FORMAT A", desc: "Card-based content sections" },
+                      { value: "B", label: "FORMAT B", desc: "Regional report / slide layout" },
+                      { value: "C", label: "FORMAT C", desc: "Know More / documentation layout" },
+                      { value: "D", label: "FORMAT D", desc: "Team / directory layout" },
+                      { value: "E", label: "FORMAT E", desc: "Drive / file-link layout" },
+                      { value: "F", label: "FORMAT F", desc: "Vortex / media gallery layout" },
+                    ].map((fmt) => (
+                      <label key={fmt.value} className="flex items-center gap-2 cursor-pointer font-mono text-sm p-1.5 rounded transition-colors hover:bg-white/5" style={{ color: formFormat === fmt.value ? "var(--accent-light)" : "var(--text-secondary)" }}>
+                        <input type="radio" name="format" value={fmt.value} checked={formFormat === fmt.value} onChange={() => setFormFormat(fmt.value)} className="accent-cyan-400" />
+                        {fmt.label}
+                        <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>({fmt.desc})</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               )}
 
               <button type="submit" className="nasa-btn text-xs">
-                {editModal.mode === "edit-label" ? "SAVE" : editModal.mode === "add-sub" ? "ADD" : "SAVE"}
+                {editModal.mode === "edit-label" ? "SAVE" : editModal.mode === "add-module" ? "CREATE TAB" : editModal.mode === "add-sub" ? "ADD" : "SAVE"}
               </button>
             </form>
           </div>

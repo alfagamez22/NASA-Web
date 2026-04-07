@@ -14,6 +14,50 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(modules);
 }
 
+// POST /api/modules — create a new top-level nav module
+export async function POST(req: NextRequest) {
+  const { error } = await requireEditor();
+  if (error) return error;
+
+  const body = await req.json();
+  const { display } = body as { display: string };
+
+  if (!display?.trim()) return NextResponse.json({ error: "display name required" }, { status: 400 });
+
+  const slug = display.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+  const href = `/${slug}`;
+
+  // Get highest order
+  const last = await prisma.module.findFirst({ orderBy: { order: "desc" } });
+  const nextOrder = (last?.order ?? 0) + 1;
+
+  const mod = await prisma.module.create({
+    data: {
+      slug,
+      title: display.trim().toUpperCase(),
+      href,
+      display: display.trim().toUpperCase(),
+      order: nextOrder,
+      children: [],
+      subNav: [],
+    },
+  });
+
+  return NextResponse.json(mod, { status: 201 });
+}
+
+// DELETE /api/modules — delete a top-level module
+export async function DELETE(req: NextRequest) {
+  const { error } = await requireEditor();
+  if (error) return error;
+
+  const id = req.nextUrl.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  await prisma.module.delete({ where: { id } });
+  return NextResponse.json({ success: true });
+}
+
 // PUT /api/modules — update a module's display name or subNav
 export async function PUT(req: NextRequest) {
   const { error } = await requireEditor();

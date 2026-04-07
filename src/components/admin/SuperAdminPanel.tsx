@@ -52,7 +52,7 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
       const res = await fetch("/api/audit-log");
       if (res.ok) {
         const data = await res.json();
-        setAuditLogs(data.logs || []);
+        setAuditLogs(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
@@ -71,7 +71,7 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
       const res = await fetch("/api/soft-deletes");
       if (res.ok) {
         const data = await res.json();
-        setSoftDeletes(data.items || []);
+        setSoftDeletes(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("Failed to fetch soft deletes:", err);
@@ -107,8 +107,10 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
   const handleRestoreItem = async (softDeleteId: string) => {
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/soft-deletes?id=${softDeleteId}`, {
+      const res = await fetch("/api/soft-deletes", {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: softDeleteId }),
       });
       if (res.ok) {
         alert("Item restored successfully!");
@@ -146,21 +148,27 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
   };
 
   const handleChangeCredentials = async () => {
-    if (!newUsername.trim() || !newPassword.trim()) {
-      alert("Please enter both username and password");
+    if (!newPassword.trim()) {
+      alert("Please enter a new password");
       return;
     }
 
     try {
       setIsLoading(true);
+      // First lookup superadmin user ID from users list
+      const usersRes = await fetch("/api/users");
+      if (!usersRes.ok) { alert("Failed to fetch users"); return; }
+      const users = await usersRes.json();
+      const superadminUser = users.find((u: { role: string }) => u.role === "super_admin");
+      if (!superadminUser) { alert("Superadmin user not found"); return; }
+
+      const body: Record<string, string> = { id: superadminUser.id, password: newPassword };
+      if (newUsername.trim()) body.displayName = newUsername;
+
       const res = await fetch("/api/users", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: "superadmin", // Change superadmin credentials
-          displayName: newUsername,
-          password: newPassword,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
@@ -169,7 +177,8 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
         setNewPassword("");
         setShowPasswordFields(false);
       } else {
-        alert("Failed to update credentials");
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to update credentials");
       }
     } catch (err) {
       console.error("Failed to change credentials:", err);

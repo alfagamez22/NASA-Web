@@ -46,16 +46,19 @@ export function PendingChangesProvider({ children }: { children: ReactNode }) {
       ]);
       if (pendRes.ok) {
         const data = await pendRes.json();
-        // If editor, show only their own
+        // If editor, show only their own pending changes
         if (isEditor && !isAdmin) {
-          setMyPending(data.filter((c: EditorPending) => c.id));
+          setMyPending(data.filter((c: EditorPending & { userId?: string }) => c.userId === user.id));
+        } else {
+          // Admin sees all pending for red-hue highlighting
+          setMyPending(data);
         }
       }
       if (allRes.ok) {
-        const allData: EditorPending[] = await allRes.json();
+        const allData: (EditorPending & { userId?: string })[] = await allRes.json();
         // Show approved/declined to the editor who submitted them
         if (isEditor && !isAdmin && user) {
-          setResolved(allData.filter((c) => (c.status === "approved" || c.status === "declined")));
+          setResolved(allData.filter((c) => c.userId === user.id && (c.status === "approved" || c.status === "declined")));
         }
       }
     } catch { /* ignore */ }

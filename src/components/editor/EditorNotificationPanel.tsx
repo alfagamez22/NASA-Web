@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { X, Check, AlertCircle } from "lucide-react";
+import { X, Check, AlertCircle, Clock } from "lucide-react";
 import { usePendingChanges } from "@/lib/pending-context";
 import type { EditorPending } from "@/lib/pending-context";
 
@@ -11,10 +11,11 @@ interface EditorNotificationPanelProps {
 }
 
 export default function EditorNotificationPanel({ isOpen, onClose }: EditorNotificationPanelProps) {
-  const { resolved, markResolvedSeen } = usePendingChanges();
+  const { resolved, myPending, markResolvedSeen } = usePendingChanges();
 
   if (!isOpen) return null;
 
+  const pending = myPending.filter((p) => p.status === "pending");
   const approved = resolved.filter((r) => r.status === "approved");
   const declined = resolved.filter((r) => r.status === "declined");
 
@@ -52,6 +53,38 @@ export default function EditorNotificationPanel({ isOpen, onClose }: EditorNotif
 
         {/* Content */}
         <div className="flex-1 p-6 space-y-8">
+          {/* Pending — awaiting admin review */}
+          {pending.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-amber-400" />
+                <h3 className="font-mono text-sm uppercase tracking-wider" style={{ color: "var(--accent-light)" }}>
+                  AWAITING APPROVAL ({pending.length})
+                </h3>
+              </div>
+              <div className="space-y-2">
+                {pending.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 rounded-sm text-sm"
+                    style={{
+                      background: "rgba(245, 158, 11, 0.1)",
+                      border: "1px solid rgba(245, 158, 11, 0.3)",
+                    }}
+                  >
+                    <div className="font-mono text-xs uppercase tracking-wider text-amber-400">
+                      {item.changeType}
+                    </div>
+                    <div style={{ color: "var(--text-primary)" }}>{item.itemName}</div>
+                    <div style={{ color: "var(--text-secondary)", fontSize: "0.75rem", marginTop: "0.25rem" }}>
+                      {new Date(item.createdAt).toLocaleDateString()} — Pending review
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Approved */}
           {approved.length > 0 && (
             <div className="space-y-3">
@@ -117,7 +150,7 @@ export default function EditorNotificationPanel({ isOpen, onClose }: EditorNotif
           )}
 
           {/* Empty State */}
-          {resolved.length === 0 && (
+          {pending.length === 0 && resolved.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div style={{ color: "var(--text-secondary)" }} className="font-mono text-xs uppercase tracking-wider mb-2">
                 NO NOTIFICATIONS
