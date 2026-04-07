@@ -88,6 +88,27 @@ export async function PUT(req: NextRequest) {
 
   const newStatus = action === "approve" ? "approved" : "declined";
 
+  // If approving, replay the stored API call to apply the change
+  if (action === "approve" && change.snapshot) {
+    const snap = change.snapshot as { apiUrl?: string; apiMethod?: string; apiBody?: unknown };
+    if (snap.apiUrl && snap.apiMethod) {
+      const origin = req.nextUrl.origin;
+      const cookie = req.headers.get("cookie") || "";
+      const apiRes = await fetch(`${origin}${snap.apiUrl}`, {
+        method: snap.apiMethod,
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: cookie,
+        },
+        body: snap.apiBody ? JSON.stringify(snap.apiBody) : undefined,
+      });
+      if (!apiRes.ok) {
+        const errText = await apiRes.text().catch(() => "Unknown error");
+        return NextResponse.json({ error: "Failed to apply change", detail: errText }, { status: 500 });
+      }
+    }
+  }
+
   // Update the pending change
   const updated = await prisma.pendingChange.update({
     where: { id },
@@ -111,81 +132,5 @@ export async function PUT(req: NextRequest) {
     data: { status: newStatus },
   });
 
-  // If declined and it was an "add" or "edit", we need to revert using the snapshot
-  if (action === "decline" && change.entityRef && change.snapshot) {
-    try {
-      await revertChange(change);
-    } catch (e) {
-      console.error("Failed to revert change:", e);
-    }
-  }
-
   return NextResponse.json(updated);
-}
-
-/**
- * Revert a declined change using the entityRef.
- * entityRef format: "ModelName:fieldName:value"
- * e.g. "ContentSection:slug:abc123" or "Tool:id:xyz"
- */
-async function revertChange(change: {
-  changeType: string;
-  entityRef: string | null;
-  snapshot: unknown;
-}) {
-  if (!change.entityRef) return;
-
-  const [model, field, ...valueParts] = change.entityRef.split(":");
-  const value = valueParts.join(":");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where = { [field]: value } as any;
-
-  if (change.changeType === "add") {
-    switch (model) {
-      case "ContentSection": await prisma.contentSection.delete({ where }).catch(() => {}); break;
-      case "ToolCategory": await prisma.toolCategory.delete({ where }).catch(() => {}); break;
-      case "Tool": await prisma.tool.delete({ where }).catch(() => {}); break;
-      case "SpineMember": await prisma.spineMember.delete({ where }).catch(() => {}); break;
-      case "Team": await prisma.team.delete({ where }).catch(() => {}); break;
-      case "TeamMember": await prisma.teamMember.delete({ where }).catch(() => {}); break;
-      case "TeamDriveCategory": await prisma.teamDriveCategory.delete({ where }).catch(() => {}); break;
-      case "TeamDriveItem": await prisma.teamDriveItem.delete({ where }).catch(() => {}); break;
-      case "VortexCategory": await prisma.vortexCategory.delete({ where }).catch(() => {}); break;
-      case "VortexItem": await prisma.vortexItem.delete({ where }).catch(() => {}); break;
-      case "VortexCredit": await prisma.vortexCredit.delete({ where }).catch(() => {}); break;
-      case "ReportSlide": await prisma.reportSlide.delete({ where }).catch(() => {}); break;
-    }
-  } else if (change.changeType === "edit" && change.snapshot) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const snap = change.snapshot as any;
-    switch (model) {
-      case "ContentSection": await prisma.contentSection.update({ where, data: snap }).catch(() => {}); break;
-      case "ToolCategory": await prisma.toolCategory.update({ where, data: snap }).catch(() => {}); break;
-      case "Tool": await prisma.tool.update({ where, data: snap }).catch(() => {}); break;
-      case "SpineMember": await prisma.spineMember.update({ where, data: snap }).catch(() => {}); break;
-      case "Team": await prisma.team.update({ where, data: snap }).catch(() => {}); break;
-      case "TeamMember": await prisma.teamMember.update({ where, data: snap }).catch(() => {}); break;
-      case "TeamDriveCategory": await prisma.teamDriveCategory.update({ where, data: snap }).catch(() => {}); break;
-      case "TeamDriveItem": await prisma.teamDriveItem.update({ where, data: snap }).catch(() => {}); break;
-      case "VortexCategory": await prisma.vortexCategory.update({ where, data: snap }).catch(() => {}); break;
-      case "VortexItem": await prisma.vortexItem.update({ where, data: snap }).catch(() => {}); break;
-      case "VortexCredit": await prisma.vortexCredit.update({ where, data: snap }).catch(() => {}); break;
-    }
-  } else if (change.changeType === "delete" && change.snapshot) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const snap = change.snapshot as any;
-    switch (model) {
-      case "ContentSection": await prisma.contentSection.create({ data: snap }).catch(() => {}); break;
-      case "ToolCategory": await prisma.toolCategory.create({ data: snap }).catch(() => {}); break;
-      case "Tool": await prisma.tool.create({ data: snap }).catch(() => {}); break;
-      case "SpineMember": await prisma.spineMember.create({ data: snap }).catch(() => {}); break;
-      case "Team": await prisma.team.create({ data: snap }).catch(() => {}); break;
-      case "TeamMember": await prisma.teamMember.create({ data: snap }).catch(() => {}); break;
-      case "TeamDriveCategory": await prisma.teamDriveCategory.create({ data: snap }).catch(() => {}); break;
-      case "TeamDriveItem": await prisma.teamDriveItem.create({ data: snap }).catch(() => {}); break;
-      case "VortexCategory": await prisma.vortexCategory.create({ data: snap }).catch(() => {}); break;
-      case "VortexItem": await prisma.vortexItem.create({ data: snap }).catch(() => {}); break;
-      case "VortexCredit": await prisma.vortexCredit.create({ data: snap }).catch(() => {}); break;
-    }
-  }
 }

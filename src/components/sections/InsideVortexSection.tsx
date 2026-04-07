@@ -74,28 +74,49 @@ export default function InsideVortexSection() {
   function handleAddCat() { setCatModal({ mode: "add" }); }
   function handleEditCat(idx: number) { setCatModal({ mode: "edit", idx, init: { title: data.categories[idx].title } }); }
   async function handleDeleteCat(idx: number) {
-    await fetch(`/api/vortex?id=${data.categories[idx].id}&type=category`, { method: "DELETE" });
-    markChanged(); notifyChange("inside-vortex", "delete", data.categories[idx].title, `VortexCategory:id:${data.categories[idx].id}`, data.categories[idx]); fetchData();
+    const cat = data.categories[idx];
+    const applied = await notifyChange("inside-vortex", "delete", cat.title, `VortexCategory:id:${cat.id}`, {
+      apiUrl: `/api/vortex?id=${cat.id}&type=category`, apiMethod: "DELETE", previous: cat,
+    });
+    if (applied) {
+      await fetch(`/api/vortex?id=${cat.id}&type=category`, { method: "DELETE" });
+      markChanged();
+      fetchData();
+    }
   }
   async function handleCatSubmit(vals: Record<string, string>) {
     if (catModal?.mode === "edit" && catModal.idx != null) {
       const cat = data.categories[catModal.idx];
-      const snapshot = { title: cat.title };
-      await fetch("/api/vortex", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "category", id: cat.id, title: vals.title }),
+      const previous = { title: cat.title };
+      const apiBody = { type: "category", id: cat.id, title: vals.title };
+      const applied = await notifyChange("inside-vortex", "edit", vals.title, `VortexCategory:id:${cat.id}`, {
+        apiUrl: "/api/vortex", apiMethod: "PUT", apiBody, previous,
       });
-      markChanged(); notifyChange("inside-vortex", "edit", vals.title, `VortexCategory:id:${cat.id}`, snapshot); setCatModal(null); fetchData();
+      if (applied) {
+        await fetch("/api/vortex", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiBody),
+        });
+        markChanged();
+        fetchData();
+      }
     } else {
-      const res = await fetch("/api/vortex", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "category", title: vals.title, order: data.categories.length }),
+      const apiBody = { type: "category", title: vals.title, order: data.categories.length };
+      const applied = await notifyChange("inside-vortex", "add", vals.title, undefined, {
+        apiUrl: "/api/vortex", apiMethod: "POST", apiBody,
       });
-      const created = await res.json().catch(() => null);
-      markChanged(); notifyChange("inside-vortex", "add", vals.title, created?.id ? `VortexCategory:id:${created.id}` : undefined); setCatModal(null); fetchData();
+      if (applied) {
+        await fetch("/api/vortex", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiBody),
+        });
+        markChanged();
+        fetchData();
+      }
     }
+    setCatModal(null);
   }
 
   // ── Item CRUD (within categories) ──────────────────────────────────────
@@ -104,30 +125,50 @@ export default function InsideVortexSection() {
   function handleEditItem(catIdx: number, itemIdx: number) { setItemModal({ mode: "edit", catIdx, itemIdx, init: { item: data.categories[catIdx].items[itemIdx] } }); }
   async function handleDeleteItem(catIdx: number, itemIdx: number) {
     const dbItem = data.categories[catIdx].dbItems[itemIdx];
-    await fetch(`/api/vortex?id=${dbItem.id}&type=item`, { method: "DELETE" });
-    markChanged(); notifyChange("inside-vortex", "delete", dbItem.content || "vortex item", `VortexItem:id:${dbItem.id}`, dbItem); fetchData();
+    const applied = await notifyChange("inside-vortex", "delete", dbItem.content || "vortex item", `VortexItem:id:${dbItem.id}`, {
+      apiUrl: `/api/vortex?id=${dbItem.id}&type=item`, apiMethod: "DELETE", previous: dbItem,
+    });
+    if (applied) {
+      await fetch(`/api/vortex?id=${dbItem.id}&type=item`, { method: "DELETE" });
+      markChanged();
+      fetchData();
+    }
   }
   async function handleItemSubmit(vals: Record<string, string>) {
     if (!itemModal) return;
     const cat = data.categories[itemModal.catIdx];
     if (itemModal.mode === "edit" && itemModal.itemIdx != null) {
       const dbItem = cat.dbItems[itemModal.itemIdx];
-      const snapshot = { content: dbItem.content };
-      await fetch("/api/vortex", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "item", id: dbItem.id, content: vals.item }),
+      const previous = { content: dbItem.content };
+      const apiBody = { type: "item", id: dbItem.id, content: vals.item };
+      const applied = await notifyChange("inside-vortex", "edit", vals.item, `VortexItem:id:${dbItem.id}`, {
+        apiUrl: "/api/vortex", apiMethod: "PUT", apiBody, previous,
       });
-      markChanged(); notifyChange("inside-vortex", "edit", vals.item, `VortexItem:id:${dbItem.id}`, snapshot); setItemModal(null); fetchData();
+      if (applied) {
+        await fetch("/api/vortex", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiBody),
+        });
+        markChanged();
+        fetchData();
+      }
     } else {
-      const res = await fetch("/api/vortex", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "item", categoryId: cat.id, content: vals.item, order: cat.items.length }),
+      const apiBody = { type: "item", categoryId: cat.id, content: vals.item, order: cat.items.length };
+      const applied = await notifyChange("inside-vortex", "add", vals.item, undefined, {
+        apiUrl: "/api/vortex", apiMethod: "POST", apiBody,
       });
-      const created = await res.json().catch(() => null);
-      markChanged(); notifyChange("inside-vortex", "add", vals.item, created?.id ? `VortexItem:id:${created.id}` : undefined); setItemModal(null); fetchData();
+      if (applied) {
+        await fetch("/api/vortex", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiBody),
+        });
+        markChanged();
+        fetchData();
+      }
     }
+    setItemModal(null);
   }
 
   // ── Credit CRUD ────────────────────────────────────────────────────────
@@ -135,28 +176,49 @@ export default function InsideVortexSection() {
   function handleAddCredit() { setCreditModal({ mode: "add" }); }
   function handleEditCredit(idx: number) { setCreditModal({ mode: "edit", idx, init: { name: data.credits[idx].name, role: data.credits[idx].role } }); }
   async function handleDeleteCredit(idx: number) {
-    await fetch(`/api/vortex?id=${data.credits[idx].id}&type=credit`, { method: "DELETE" });
-    markChanged(); notifyChange("inside-vortex", "delete", data.credits[idx].name, `VortexCredit:id:${data.credits[idx].id}`, data.credits[idx]); fetchData();
+    const credit = data.credits[idx];
+    const applied = await notifyChange("inside-vortex", "delete", credit.name, `VortexCredit:id:${credit.id}`, {
+      apiUrl: `/api/vortex?id=${credit.id}&type=credit`, apiMethod: "DELETE", previous: credit,
+    });
+    if (applied) {
+      await fetch(`/api/vortex?id=${credit.id}&type=credit`, { method: "DELETE" });
+      markChanged();
+      fetchData();
+    }
   }
   async function handleCreditSubmit(vals: Record<string, string>) {
     if (creditModal?.mode === "edit" && creditModal.idx != null) {
       const credit = data.credits[creditModal.idx];
-      const snapshot = { name: credit.name, role: credit.role };
-      await fetch("/api/vortex", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "credit", id: credit.id, name: vals.name, role: vals.role }),
+      const previous = { name: credit.name, role: credit.role };
+      const apiBody = { type: "credit", id: credit.id, name: vals.name, role: vals.role };
+      const applied = await notifyChange("inside-vortex", "edit", vals.name, `VortexCredit:id:${credit.id}`, {
+        apiUrl: "/api/vortex", apiMethod: "PUT", apiBody, previous,
       });
-      markChanged(); notifyChange("inside-vortex", "edit", vals.name, `VortexCredit:id:${credit.id}`, snapshot); setCreditModal(null); fetchData();
+      if (applied) {
+        await fetch("/api/vortex", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiBody),
+        });
+        markChanged();
+        fetchData();
+      }
     } else {
-      const res = await fetch("/api/vortex", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "credit", name: vals.name, role: vals.role, order: data.credits.length }),
+      const apiBody = { type: "credit", name: vals.name, role: vals.role, order: data.credits.length };
+      const applied = await notifyChange("inside-vortex", "add", vals.name, undefined, {
+        apiUrl: "/api/vortex", apiMethod: "POST", apiBody,
       });
-      const created = await res.json().catch(() => null);
-      markChanged(); notifyChange("inside-vortex", "add", vals.name, created?.id ? `VortexCredit:id:${created.id}` : undefined); setCreditModal(null); fetchData();
+      if (applied) {
+        await fetch("/api/vortex", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiBody),
+        });
+        markChanged();
+        fetchData();
+      }
     }
+    setCreditModal(null);
   }
 
   const { scrollYProgress: sectionProgress } = useScroll({

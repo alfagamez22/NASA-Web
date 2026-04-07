@@ -17,7 +17,7 @@ interface EditModeContextType {
   setShowCancelDialog: (v: boolean) => void;
   confirmCancel: () => void;
   denyCancelDialog: () => void;
-  notifyChange: (page: string, changeType: "add" | "edit" | "delete", itemName: string, entityRef?: string, snapshot?: unknown) => void;
+  notifyChange: (page: string, changeType: "add" | "edit" | "delete", itemName: string, entityRef?: string, snapshot?: unknown) => Promise<boolean>;
 }
 
 const EditModeContext = createContext<EditModeContextType | undefined>(undefined);
@@ -77,17 +77,20 @@ export function EditModeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const notifyChange = useCallback(
-    (page: string, changeType: "add" | "edit" | "delete", itemName: string, entityRef?: string, snapshot?: unknown) => {
-      if (!user) return;
+    async (page: string, changeType: "add" | "edit" | "delete", itemName: string, entityRef?: string, snapshot?: unknown): Promise<boolean> => {
+      if (!user) return false;
       if (isEditor && !isAdmin) {
-        // Editor: create a pending change (API also creates notification + activity log)
-        fetch("/api/pending-changes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ page, changeType, itemName, entityRef, snapshot }),
-        }).catch(() => {});
+        // Editor: create a pending change — do NOT apply the actual mutation
+        try {
+          await fetch("/api/pending-changes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ page, changeType, itemName, entityRef, snapshot }),
+          });
+        } catch { /* ignore */ }
+        return false;
       } else if (isAdmin) {
-        // Admin: changes are instant — just log them
+        // Admin: changes are applied immediately — just log them
         fetch("/api/notifications", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -98,7 +101,9 @@ export function EditModeProvider({ children }: { children: ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ page, changeType, itemName, status: "applied" }),
         }).catch(() => {});
+        return true;
       }
+      return false;
     },
     [user, isEditor, isAdmin]
   );

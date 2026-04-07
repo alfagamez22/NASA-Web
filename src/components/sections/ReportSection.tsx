@@ -65,39 +65,57 @@ export default function ReportSection() {
 
   async function handleDelete(idx: number) {
     const slide = slides[idx];
-    await fetch(`/api/sections?slug=${slide.id}`, { method: "DELETE" });
-    markChanged(); notifyChange("report", "delete", slide.label, `ReportSlide:id:${slide.id}`, slide);
-    fetchSlides();
+    const applied = await notifyChange("report", "delete", slide.label, `ReportSlide:id:${slide.id}`, {
+      apiUrl: `/api/sections?slug=${slide.id}`, apiMethod: "DELETE", previous: slide,
+    });
+    if (applied) {
+      await fetch(`/api/sections?slug=${slide.id}`, { method: "DELETE" });
+      markChanged();
+      fetchSlides();
+    }
   }
 
   async function handleSubmit(vals: Record<string, string>) {
     const colSpan = parseInt(vals.colSpan) || 1;
     if (modal?.mode === "edit" && modal.idx != null) {
       const slide = slides[modal.idx];
-      const snapshot = { label: slide.label, gurl: slide.gurl, colSpan: slide.colSpan };
-      await fetch("/api/sections", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug: slide.id, title: vals.label, colSpan,
-          media: [{ type: "google-slides", gurl: vals.gurl }],
-        }),
+      const previous = { label: slide.label, gurl: slide.gurl, colSpan: slide.colSpan };
+      const apiBody = {
+        slug: slide.id, title: vals.label, colSpan,
+        media: [{ type: "google-slides", gurl: vals.gurl }],
+      };
+      const applied = await notifyChange("report", "edit", vals.label, `ReportSlide:id:${slide.id}`, {
+        apiUrl: "/api/sections", apiMethod: "PUT", apiBody, previous,
       });
-      markChanged(); notifyChange("report", "edit", vals.label, `ReportSlide:id:${slide.id}`, snapshot);
+      if (applied) {
+        await fetch("/api/sections", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiBody),
+        });
+        markChanged();
+        fetchSlides();
+      }
     } else {
       const slug = generateSlug();
-      await fetch("/api/sections", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug, title: vals.label, parentSlug: "report", order: slides.length, colSpan,
-          media: [{ type: "google-slides", gurl: vals.gurl }],
-        }),
+      const apiBody = {
+        slug, title: vals.label, parentSlug: "report", order: slides.length, colSpan,
+        media: [{ type: "google-slides", gurl: vals.gurl }],
+      };
+      const applied = await notifyChange("report", "add", vals.label, `ContentSection:slug:${slug}`, {
+        apiUrl: "/api/sections", apiMethod: "POST", apiBody,
       });
-      markChanged(); notifyChange("report", "add", vals.label, `ContentSection:slug:${slug}`);
+      if (applied) {
+        await fetch("/api/sections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiBody),
+        });
+        markChanged();
+        fetchSlides();
+      }
     }
     setModal(null);
-    fetchSlides();
   }
 
   return (

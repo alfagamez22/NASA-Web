@@ -82,53 +82,67 @@ export default function KnowMoreSection() {
     const slug = generateSlug();
     let parsedLinks: { label: string; url: string }[] = [];
     try { parsedLinks = values.links ? JSON.parse(values.links) : []; } catch { parsedLinks = []; }
-    await fetch("/api/sections", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug, title: values.title, parentSlug: "know-more", order: sections.length,
-        author: values.author || undefined, authorUrl: values.authorUrl || undefined,
-        description: values.description || undefined, content: values.content || undefined,
-        media: buildMedia(values),
-        links: parsedLinks.filter((l) => l.label && l.url),
-        buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
-      }),
+    const apiBody = {
+      slug, title: values.title, parentSlug: "know-more", order: sections.length,
+      author: values.author || undefined, authorUrl: values.authorUrl || undefined,
+      description: values.description || undefined, content: values.content || undefined,
+      media: buildMedia(values),
+      links: parsedLinks.filter((l) => l.label && l.url),
+      buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
+    };
+    const applied = await notifyChange("know-more", "add", values.title, `ContentSection:slug:${slug}`, {
+      apiUrl: "/api/sections", apiMethod: "POST", apiBody,
     });
-    markChanged();
-    notifyChange("know-more", "add", values.title, `ContentSection:slug:${slug}`);
-    fetchSections();
+    if (applied) {
+      await fetch("/api/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      markChanged();
+      fetchSections();
+    }
   }
 
   async function handleEdit(values: Record<string, string>) {
     if (!editingSection) return;
-    const snapshot = { title: editingSection.title, description: editingSection.description, content: editingSection.content, author: editingSection.author, authorUrl: editingSection.authorUrl };
+    const previous = { title: editingSection.title, description: editingSection.description, content: editingSection.content, author: editingSection.author, authorUrl: editingSection.authorUrl };
     let parsedLinks: { label: string; url: string }[] = [];
     try { parsedLinks = values.links ? JSON.parse(values.links) : []; } catch { parsedLinks = []; }
-    await fetch("/api/sections", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug: editingSection.slug,
-        title: values.title, author: values.author || undefined,
-        authorUrl: values.authorUrl || undefined, description: values.description || undefined,
-        content: values.content || undefined,
-        media: buildMedia(values),
-        links: parsedLinks.filter((l) => l.label && l.url),
-        buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
-      }),
+    const apiBody = {
+      slug: editingSection.slug,
+      title: values.title, author: values.author || undefined,
+      authorUrl: values.authorUrl || undefined, description: values.description || undefined,
+      content: values.content || undefined,
+      media: buildMedia(values),
+      links: parsedLinks.filter((l) => l.label && l.url),
+      buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
+    };
+    const applied = await notifyChange("know-more", "edit", values.title, `ContentSection:slug:${editingSection.slug}`, {
+      apiUrl: "/api/sections", apiMethod: "PUT", apiBody, previous,
     });
-    markChanged();
-    notifyChange("know-more", "edit", values.title, `ContentSection:slug:${editingSection.slug}`, snapshot);
+    if (applied) {
+      await fetch("/api/sections", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      markChanged();
+      fetchSections();
+    }
     setEditingSection(null);
-    fetchSections();
   }
 
   async function handleDelete(section: ContentSection) {
     if (confirm(`Delete "${section.title}"?`)) {
-      await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
-      markChanged();
-      notifyChange("know-more", "delete", section.title, `ContentSection:slug:${section.slug}`, section);
-      fetchSections();
+      const applied = await notifyChange("know-more", "delete", section.title, `ContentSection:slug:${section.slug}`, {
+        apiUrl: `/api/sections?slug=${section.slug}`, apiMethod: "DELETE", previous: section,
+      });
+      if (applied) {
+        await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
+        markChanged();
+        fetchSections();
+      }
     }
   }
 

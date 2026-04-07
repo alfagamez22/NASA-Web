@@ -48,79 +48,107 @@ export default function HomeSection() {
 
   async function handleAddCategory(values: Record<string, string>) {
     const slug = generateSlug();
-    await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, title: values.title, parentSlug: "home", order: categories.length }),
+    const apiBody = { slug, title: values.title, parentSlug: "home", order: categories.length };
+    const applied = await notifyChange("home", "add", values.title, `ToolCategory:slug:${slug}`, {
+      apiUrl: "/api/categories", apiMethod: "POST", apiBody,
     });
-    markChanged();
-    notifyChange("home", "add", values.title, `ToolCategory:slug:${slug}`);
-    fetchCategories();
+    if (applied) {
+      await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      markChanged();
+      fetchCategories();
+    }
   }
 
   async function handleEditCategory(values: Record<string, string>) {
     if (!editingCategory) return;
-    const snapshot = { title: editingCategory.title };
-    await fetch("/api/categories", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: editingCategory.slug, title: values.title }),
+    const previous = { title: editingCategory.title };
+    const apiBody = { slug: editingCategory.slug, title: values.title };
+    const applied = await notifyChange("home", "edit", values.title, `ToolCategory:slug:${editingCategory.slug}`, {
+      apiUrl: "/api/categories", apiMethod: "PUT", apiBody, previous,
     });
-    markChanged();
-    notifyChange("home", "edit", values.title, `ToolCategory:slug:${editingCategory.slug}`, snapshot);
+    if (applied) {
+      await fetch("/api/categories", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      markChanged();
+      fetchCategories();
+    }
     setEditingCategory(null);
-    fetchCategories();
   }
 
   async function handleDeleteCategory(cat: ToolCategory) {
     if (confirm(`Delete category "${cat.title}" and all its tools?`)) {
-      await fetch(`/api/categories?slug=${cat.slug}`, { method: "DELETE" });
-      markChanged();
-      notifyChange("home", "delete", cat.title, `ToolCategory:slug:${cat.slug}`, cat);
-      fetchCategories();
+      const applied = await notifyChange("home", "delete", cat.title, `ToolCategory:slug:${cat.slug}`, {
+        apiUrl: `/api/categories?slug=${cat.slug}`, apiMethod: "DELETE", previous: cat,
+      });
+      if (applied) {
+        await fetch(`/api/categories?slug=${cat.slug}`, { method: "DELETE" });
+        markChanged();
+        fetchCategories();
+      }
     }
   }
 
   async function handleAddTool(values: Record<string, string>) {
     const slug = generateSlug();
     const cat = categories.find((c) => c.slug === targetCategorySlug);
-    await fetch("/api/tools", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug, title: values.title, url: values.url,
-        icon: values.icon || "Monitor", description: values.description || "",
-        categorySlug: targetCategorySlug, order: cat ? cat.tools.length : 0,
-      }),
+    const apiBody = {
+      slug, title: values.title, url: values.url,
+      icon: values.icon || "Monitor", description: values.description || "",
+      categorySlug: targetCategorySlug, order: cat ? cat.tools.length : 0,
+    };
+    const applied = await notifyChange("home", "add", values.title, `Tool:slug:${slug}`, {
+      apiUrl: "/api/tools", apiMethod: "POST", apiBody,
     });
-    markChanged();
-    notifyChange("home", "add", values.title, `Tool:slug:${slug}`);
-    fetchCategories();
+    if (applied) {
+      await fetch("/api/tools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      markChanged();
+      fetchCategories();
+    }
   }
 
   async function handleEditTool(values: Record<string, string>) {
     if (!editingTool) return;
-    const snapshot = { title: editingTool.tool.title, url: editingTool.tool.url, icon: editingTool.tool.icon, description: editingTool.tool.description };
-    await fetch("/api/tools", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug: editingTool.tool.slug, title: values.title, url: values.url,
-        icon: values.icon || "Monitor", description: values.description || "",
-      }),
+    const previous = { title: editingTool.tool.title, url: editingTool.tool.url, icon: editingTool.tool.icon, description: editingTool.tool.description };
+    const apiBody = {
+      slug: editingTool.tool.slug, title: values.title, url: values.url,
+      icon: values.icon || "Monitor", description: values.description || "",
+    };
+    const applied = await notifyChange("home", "edit", values.title, `Tool:slug:${editingTool.tool.slug}`, {
+      apiUrl: "/api/tools", apiMethod: "PUT", apiBody, previous,
     });
-    markChanged();
-    notifyChange("home", "edit", values.title, `Tool:slug:${editingTool.tool.slug}`, snapshot);
+    if (applied) {
+      await fetch("/api/tools", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      markChanged();
+      fetchCategories();
+    }
     setEditingTool(null);
-    fetchCategories();
   }
 
   async function handleDeleteTool(categorySlug: string, tool: ToolItem) {
     if (confirm(`Delete tool "${tool.title}"?`)) {
-      await fetch(`/api/tools?slug=${tool.slug}`, { method: "DELETE" });
-      markChanged();
-      notifyChange("home", "delete", tool.title, `Tool:slug:${tool.slug}`, tool);
-      fetchCategories();
+      const applied = await notifyChange("home", "delete", tool.title, `Tool:slug:${tool.slug}`, {
+        apiUrl: `/api/tools?slug=${tool.slug}`, apiMethod: "DELETE", previous: tool,
+      });
+      if (applied) {
+        await fetch(`/api/tools?slug=${tool.slug}`, { method: "DELETE" });
+        markChanged();
+        fetchCategories();
+      }
     }
   }
 

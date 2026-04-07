@@ -70,45 +70,59 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
 
   async function handleAdd(values: Record<string, string>) {
     const slug = generateSlug();
-    await fetch("/api/sections", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug, title: values.title, parentSlug: moduleSlug, order: regions.length,
-        description: values.description || undefined,
-        slides: buildSlides(values, slug),
-      }),
+    const apiBody = {
+      slug, title: values.title, parentSlug: moduleSlug, order: regions.length,
+      description: values.description || undefined,
+      slides: buildSlides(values, slug),
+    };
+    const applied = await notifyChange(`report-${moduleSlug}`, "add", values.title, `ContentSection:slug:${slug}`, {
+      apiUrl: "/api/sections", apiMethod: "POST", apiBody,
     });
-    markChanged();
-    notifyChange(`report-${moduleSlug}`, "add", values.title, `ContentSection:slug:${slug}`);
-    fetchRegions();
+    if (applied) {
+      await fetch("/api/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      markChanged();
+      fetchRegions();
+    }
   }
 
   async function handleEdit(values: Record<string, string>) {
     if (!editingSection) return;
-    const snapshot = { title: editingSection.title, description: editingSection.description };
-    await fetch("/api/sections", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug: editingSection.slug,
-        title: values.title,
-        description: values.description || undefined,
-        slides: buildSlides(values, editingSection.slug, editingSection.slides?.[0]?.slug),
-      }),
+    const previous = { title: editingSection.title, description: editingSection.description };
+    const apiBody = {
+      slug: editingSection.slug,
+      title: values.title,
+      description: values.description || undefined,
+      slides: buildSlides(values, editingSection.slug, editingSection.slides?.[0]?.slug),
+    };
+    const applied = await notifyChange(`report-${moduleSlug}`, "edit", values.title, `ContentSection:slug:${editingSection.slug}`, {
+      apiUrl: "/api/sections", apiMethod: "PUT", apiBody, previous,
     });
-    markChanged();
-    notifyChange(`report-${moduleSlug}`, "edit", values.title, `ContentSection:slug:${editingSection.slug}`, snapshot);
+    if (applied) {
+      await fetch("/api/sections", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      markChanged();
+      fetchRegions();
+    }
     setEditingSection(null);
-    fetchRegions();
   }
 
   async function handleDelete(section: ContentSection) {
     if (confirm(`Delete "${section.title}"?`)) {
-      await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
-      markChanged();
-      notifyChange(`report-${moduleSlug}`, "delete", section.title, `ContentSection:slug:${section.slug}`, section);
-      fetchRegions();
+      const applied = await notifyChange(`report-${moduleSlug}`, "delete", section.title, `ContentSection:slug:${section.slug}`, {
+        apiUrl: `/api/sections?slug=${section.slug}`, apiMethod: "DELETE", previous: section,
+      });
+      if (applied) {
+        await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
+        markChanged();
+        fetchRegions();
+      }
     }
   }
 
