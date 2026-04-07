@@ -746,7 +746,7 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                   onClick={() => updateHighlightSettings({ enabled: !highlightSettings.enabled })}
                   className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${highlightSettings.enabled ? "bg-green-500" : "bg-gray-600"}`}
                 >
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200 ${highlightSettings.enabled ? "translate-x-6" : "translate-x-0.5"}`} />
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200 ${highlightSettings.enabled ? "translate-x-6" : "translate-x-0"}`} />
                 </button>
               </div>
 
