@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, Bell, Check, ArrowUpDown, ClipboardList, CheckCircle, XCircle, Clock } from "lucide-react";
+import { X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, Bell, Check, ArrowUpDown, ClipboardList, CheckCircle, XCircle, Clock, Highlighter } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useHighlight } from "@/lib/highlight-context";
 
 interface Notification {
   id: string;
@@ -69,7 +70,8 @@ const ALL_PAGES = [
 
 export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPanelProps) {
   const { user, refreshUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<"account" | "users" | "notifications" | "logs">("users");
+  const { settings: highlightSettings, updateSettings: updateHighlightSettings } = useHighlight();
+  const [activeTab, setActiveTab] = useState<"account" | "users" | "notifications" | "logs" | "highlights">("users");
   const [users, setUsersState] = useState<DBUser[]>([]);
   const [notifications, setNotificationsState] = useState<Notification[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
@@ -294,7 +296,7 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
 
         {/* Tabs */}
         <div className="flex" style={{ borderBottom: "1px solid var(--border-color)" }}>
-          {(["account", "users", "notifications", "logs"] as const).map((tab) => (
+          {(["account", "users", "notifications", "logs", "highlights"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -686,6 +688,85 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Highlight Settings Tab ────────────────────────────────── */}
+          {activeTab === "highlights" && (
+            <div className="space-y-6">
+              <h3 className="font-display text-xl uppercase flex items-center gap-2" style={{ color: "var(--accent-color)" }}>
+                <Highlighter size={18} /> CHANGE HIGHLIGHTS
+              </h3>
+              <p className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
+                Recently added or edited content is visually highlighted for editors and admins. Configure the appearance and duration below.
+              </p>
+
+              {/* Enable / Disable Toggle */}
+              <div className="flex items-center justify-between p-4" style={{ border: "1px solid var(--border-color)", background: "var(--bg-tertiary)" }}>
+                <div>
+                  <p className="font-mono text-sm font-bold" style={{ color: "var(--text-primary)" }}>ENABLE HIGHLIGHTS</p>
+                  <p className="font-mono text-[10px]" style={{ color: "var(--text-secondary)" }}>Show green glow around recently changed items</p>
+                </div>
+                <button
+                  onClick={() => updateHighlightSettings({ enabled: !highlightSettings.enabled })}
+                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${highlightSettings.enabled ? "bg-green-500" : "bg-gray-600"}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200 ${highlightSettings.enabled ? "translate-x-6" : "translate-x-0.5"}`} />
+                </button>
+              </div>
+
+              {/* Highlight Color */}
+              <div className="p-4 space-y-3" style={{ border: "1px solid var(--border-color)", background: "var(--bg-tertiary)" }}>
+                <p className="font-mono text-sm font-bold" style={{ color: "var(--text-primary)" }}>HIGHLIGHT COLOR</p>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="color"
+                    value={highlightSettings.color}
+                    onChange={(e) => updateHighlightSettings({ color: e.target.value })}
+                    className="w-10 h-10 rounded cursor-pointer border-0 bg-transparent"
+                  />
+                  <span className="font-mono text-xs uppercase" style={{ color: "var(--text-secondary)" }}>{highlightSettings.color}</span>
+                  <button
+                    onClick={() => updateHighlightSettings({ color: "#22c55e" })}
+                    className="font-mono text-[10px] uppercase px-2 py-1 rounded hover:bg-green-600/30 transition-colors"
+                    style={{ border: "1px solid rgba(34,197,94,0.4)", color: "rgb(34,197,94)" }}
+                  >
+                    RESET
+                  </button>
+                </div>
+                {/* Preview */}
+                <div
+                  className="p-3 rounded relative"
+                  style={{
+                    outline: `2px solid ${highlightSettings.color}`,
+                    boxShadow: `0 0 12px ${highlightSettings.color}40, inset 0 0 20px ${highlightSettings.color}08`,
+                  }}
+                >
+                  <span className="font-mono text-xs" style={{ color: "var(--text-primary)" }}>Preview: This is how highlighted content will appear</span>
+                </div>
+              </div>
+
+              {/* Duration */}
+              <div className="p-4 space-y-3" style={{ border: "1px solid var(--border-color)", background: "var(--bg-tertiary)" }}>
+                <p className="font-mono text-sm font-bold" style={{ color: "var(--text-primary)" }}>HIGHLIGHT DURATION</p>
+                <p className="font-mono text-[10px]" style={{ color: "var(--text-secondary)" }}>How long items remain highlighted after being changed</p>
+                <div className="flex items-center gap-3">
+                  {[6, 12, 24, 48, 72].map((hours) => (
+                    <button
+                      key={hours}
+                      onClick={() => updateHighlightSettings({ durationHours: hours })}
+                      className={`font-mono text-xs px-3 py-1.5 rounded transition-colors ${highlightSettings.durationHours === hours ? "" : "hover:bg-white/5"}`}
+                      style={{
+                        border: `1px solid ${highlightSettings.durationHours === hours ? "var(--accent-color)" : "var(--border-color)"}`,
+                        background: highlightSettings.durationHours === hours ? "var(--accent-color)" : "transparent",
+                        color: highlightSettings.durationHours === hours ? "var(--bg-primary)" : "var(--text-secondary)",
+                      }}
+                    >
+                      {hours}h
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}

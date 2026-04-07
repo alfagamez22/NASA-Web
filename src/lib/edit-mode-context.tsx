@@ -99,7 +99,7 @@ export function EditModeProvider({ children }: { children: ReactNode }) {
         fetch("/api/activity-log", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ page, changeType, itemName, status: "applied" }),
+          body: JSON.stringify({ page, changeType, itemName, status: "applied", entityRef: entityRef || null }),
         }).catch(() => {});
         return true;
       }

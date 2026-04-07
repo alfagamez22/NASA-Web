@@ -6,6 +6,8 @@ import { Plus, Edit2, Trash2 } from "lucide-react";
 import MediaEmbed from "@/components/content/MediaEmbed";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
+import { useHighlight } from "@/lib/highlight-context";
+import ChangeHighlight from "@/components/ui/ChangeHighlight";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
 interface ReportSlide {
@@ -41,6 +43,7 @@ const SLIDE_FIELDS: FormField[] = [
 export default function ReportSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
   const { isPending } = usePendingChanges();
+  const { refresh: refreshHighlights } = useHighlight();
   const [slides, setSlides] = useState<ReportSlide[]>(DEFAULT_SLIDES);
   const [loaded, setLoaded] = useState(false);
 
@@ -74,6 +77,7 @@ export default function ReportSection() {
       await fetch(`/api/sections?slug=${slide.id}`, { method: "DELETE" });
       markChanged();
       fetchSlides();
+      refreshHighlights();
     }
   }
 
@@ -97,6 +101,7 @@ export default function ReportSection() {
         });
         markChanged();
         fetchSlides();
+        refreshHighlights();
       }
     } else {
       const slug = generateSlug();
@@ -115,6 +120,7 @@ export default function ReportSection() {
         });
         markChanged();
         fetchSlides();
+        refreshHighlights();
       }
     }
     setModal(null);
@@ -156,7 +162,7 @@ export default function ReportSection() {
             const entityRef = `ContentSection:slug:${slide.id}`;
             const hasPending = isPending(entityRef);
             return (
-            <div key={slide.id} className={`relative group/slide ${slide.colSpan === 2 ? "md:col-span-2" : ""} ${hasPending ? "pending-change-highlight" : ""}`}>
+            <ChangeHighlight key={slide.id} entityRef={entityRef} className={`relative group/slide ${slide.colSpan === 2 ? "md:col-span-2" : ""} ${hasPending ? "pending-change-highlight" : ""}`}>
               {hasPending && <span className="pending-change-badge">PENDING</span>}
               {isEditMode && (
                 <div className="absolute top-2 right-2 z-20 hidden group-hover/slide:flex gap-1">
@@ -171,7 +177,7 @@ export default function ReportSection() {
                   <span className="font-mono text-nasa-gray">EMPTY SLOT ({slide.label})</span>
                 </div>
               )}
-            </div>
+            </ChangeHighlight>
             );
             })}
         </div>

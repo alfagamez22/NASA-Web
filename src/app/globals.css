@@ -361,6 +361,50 @@
     padding: 2px 6px;
   }
 
+  /* Recently changed content — green highlight */
+  .recent-change-highlight {
+    position: relative;
+    outline: 2px solid var(--highlight-color, #22c55e);
+    outline-offset: -2px;
+    border-radius: 2px;
+    transition: outline-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--highlight-color, #22c55e) 40%, transparent),
+                inset 0 0 8px color-mix(in srgb, var(--highlight-color, #22c55e) 10%, transparent);
+  }
+  .recent-change-highlight::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--highlight-color, #22c55e) 6%, transparent);
+    pointer-events: none;
+    z-index: 1;
+    border-radius: 2px;
+  }
+  .recent-change-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 2;
+    background: #22c55e;
+    color: white;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 2px;
+    line-height: 1.4;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  @keyframes highlight-pulse {
+    0%, 100% { outline-color: var(--highlight-color, #22c55e); }
+    50% { outline-color: color-mix(in srgb, var(--highlight-color, #22c55e) 50%, transparent); }
+  }
+  .recent-change-highlight:hover {
+    animation: highlight-pulse 2s ease-in-out infinite;
+  }
+
   .marquee-text {
     font-family: "Anton", sans-serif;
     font-size: 5rem;

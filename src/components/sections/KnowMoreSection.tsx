@@ -5,7 +5,9 @@ import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
+import { useHighlight } from "@/lib/highlight-context";
 import ContentSectionCard from "@/components/content/ContentSectionCard";
+import ChangeHighlight from "@/components/ui/ChangeHighlight";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 import type { ContentSection } from "@/lib/types";
 
@@ -38,6 +40,7 @@ const SECTION_FIELDS: FormField[] = [
 export default function KnowMoreSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
   const { isPending } = usePendingChanges();
+  const { isRecentlyChanged, refresh: refreshHighlights } = useHighlight();
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -103,6 +106,7 @@ export default function KnowMoreSection() {
       });
       markChanged();
       fetchSections();
+      refreshHighlights();
     }
   }
 
@@ -131,6 +135,7 @@ export default function KnowMoreSection() {
       });
       markChanged();
       fetchSections();
+      refreshHighlights();
     }
     setEditingSection(null);
   }
@@ -144,6 +149,7 @@ export default function KnowMoreSection() {
         await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
         markChanged();
         fetchSections();
+        refreshHighlights();
       }
     }
   }
@@ -177,7 +183,7 @@ export default function KnowMoreSection() {
           const entityRef = `ContentSection:slug:${section.slug}`;
           const hasPending = isPending(entityRef);
           return (
-          <div key={section.slug} className={`relative group/sec ${hasPending ? "pending-change-highlight" : ""}`}>
+          <ChangeHighlight key={section.slug} entityRef={entityRef} className={`relative group/sec ${hasPending ? "pending-change-highlight" : ""}`}>
             {hasPending && <span className="pending-change-badge">PENDING</span>}
             {isEditMode && (
               <div className="absolute top-2 right-2 z-30 flex gap-1 opacity-0 group-hover/sec:opacity-100 transition-opacity">
@@ -190,7 +196,7 @@ export default function KnowMoreSection() {
               </div>
             )}
             <ContentSectionCard section={section} />
-          </div>
+          </ChangeHighlight>
         );
         })}
       </div>

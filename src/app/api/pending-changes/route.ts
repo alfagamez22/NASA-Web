@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       username: user.name || "Unknown",
       userId: user.id,
       status: "pending",
+      entityRef: body.entityRef ?? null,
     },
   });
 
@@ -129,7 +130,7 @@ export async function PUT(req: NextRequest) {
       userId: change.userId,
       status: "pending",
     },
-    data: { status: newStatus },
+    data: { status: newStatus, entityRef: change.entityRef },
   });
 
   // Mark any existing notifications for this change as read (to prevent duplicates)

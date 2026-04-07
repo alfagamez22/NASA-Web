@@ -5,7 +5,9 @@ import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
+import { useHighlight } from "@/lib/highlight-context";
 import SlideCard from "@/components/content/SlideCard";
+import ChangeHighlight from "@/components/ui/ChangeHighlight";
 import TBAReport from "@/components/sections/TBAReport";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 import type { ContentSection } from "@/lib/types";
@@ -37,6 +39,7 @@ interface RegionalReportSectionProps {
 export default function RegionalReportSection({ reportType, moduleSlug }: RegionalReportSectionProps) {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
   const { isPending } = usePendingChanges();
+  const { refresh: refreshHighlights } = useHighlight();
   const [regions, setRegions] = useState<ContentSection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -88,6 +91,7 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
       });
       markChanged();
       fetchRegions();
+      refreshHighlights();
     }
   }
 
@@ -111,6 +115,7 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
       });
       markChanged();
       fetchRegions();
+      refreshHighlights();
     }
     setEditingSection(null);
   }
@@ -124,6 +129,7 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
         await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
         markChanged();
         fetchRegions();
+        refreshHighlights();
       }
     }
   }
@@ -161,7 +167,7 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
           const entityRef = `ContentSection:slug:${region.slug}`;
           const hasPending = isPending(entityRef);
           return (
-          <div key={region.slug} className={`space-y-8 relative group/reg ${hasPending ? "pending-change-highlight" : ""}`}>
+          <ChangeHighlight key={region.slug} entityRef={entityRef} className={`space-y-8 relative group/reg ${hasPending ? "pending-change-highlight" : ""}`}>
             {hasPending && <span className="pending-change-badge">PENDING</span>}
             {isEditMode && (
               <div className="absolute top-2 right-2 z-30 flex gap-1 opacity-0 group-hover/reg:opacity-100 transition-opacity">
@@ -188,7 +194,7 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
                 </div>
               ))}
             </div>
-          </div>
+          </ChangeHighlight>
         );
         })}
       </div>

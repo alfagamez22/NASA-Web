@@ -5,7 +5,9 @@ import { motion } from "framer-motion";
 import { Plus, Trash2, Edit2, GripVertical } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
+import { useHighlight } from "@/lib/highlight-context";
 import CollapsibleCategory from "@/components/ui/CollapsibleCategory";
+import ChangeHighlight from "@/components/ui/ChangeHighlight";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 import { CONTACT_NUMBERS } from "@/lib/constants";
 import type { ToolCategory, ToolItem } from "@/lib/types";
@@ -26,6 +28,7 @@ const TOOL_FIELDS: FormField[] = [
 export default function HomeSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
   const { isPending } = usePendingChanges();
+  const { refresh: refreshHighlights } = useHighlight();
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +65,7 @@ export default function HomeSection() {
       });
       markChanged();
       fetchCategories();
+      refreshHighlights();
     }
   }
 
@@ -80,6 +84,7 @@ export default function HomeSection() {
       });
       markChanged();
       fetchCategories();
+      refreshHighlights();
     }
     setEditingCategory(null);
   }
@@ -93,6 +98,7 @@ export default function HomeSection() {
         await fetch(`/api/categories?slug=${cat.slug}`, { method: "DELETE" });
         markChanged();
         fetchCategories();
+        refreshHighlights();
       }
     }
   }
@@ -116,6 +122,7 @@ export default function HomeSection() {
       });
       markChanged();
       fetchCategories();
+      refreshHighlights();
     }
   }
 
@@ -137,6 +144,7 @@ export default function HomeSection() {
       });
       markChanged();
       fetchCategories();
+      refreshHighlights();
     }
     setEditingTool(null);
   }
@@ -150,6 +158,7 @@ export default function HomeSection() {
         await fetch(`/api/tools?slug=${tool.slug}`, { method: "DELETE" });
         markChanged();
         fetchCategories();
+        refreshHighlights();
       }
     }
   }
@@ -191,7 +200,7 @@ export default function HomeSection() {
               const entityRef = `ToolCategory:slug:${category.slug}`;
               const hasPending = isPending(entityRef);
               return (
-              <div key={category.slug} className={`relative group/cat flex-1 min-w-0 ${hasPending ? "pending-change-highlight" : ""}`}>
+              <ChangeHighlight key={category.slug} entityRef={entityRef} className={`relative group/cat flex-1 min-w-0 ${hasPending ? "pending-change-highlight" : ""}`}>
                 {hasPending && <span className="pending-change-badge">PENDING</span>}
                 {isEditMode && (
                   <div className="absolute top-1 right-1 z-30 flex gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity">
@@ -224,7 +233,7 @@ export default function HomeSection() {
                   onEditTool={(tool) => setEditingTool({ tool, categorySlug: category.slug })}
                   onDeleteTool={(tool) => handleDeleteTool(category.slug, tool)}
                 />
-              </div>
+              </ChangeHighlight>
             );
             })}
           </div>

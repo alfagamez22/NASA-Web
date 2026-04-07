@@ -6,6 +6,8 @@ import { Plus, Edit2, Trash2 } from "lucide-react";
 import { TEAM_EMAIL } from "@/lib/constants";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
+import { useHighlight } from "@/lib/highlight-context";
+import ChangeHighlight from "@/components/ui/ChangeHighlight";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
 interface SpineMember { id: string; name: string; role: string; img: string; order: number }
@@ -307,6 +309,8 @@ export default function TeamSection() {
 
   function handleAddSpine() { setSpineModal({ mode: "add" }); }
   function handleEditSpine(idx: number, m: SpineMember) { setSpineModal({ mode: "edit", idx, init: { name: m.name, role: m.role, img: m.img } }); }
+  const { refresh: refreshHighlights } = useHighlight();
+
   async function handleDeleteSpine(idx: number) {
     const m = spine[idx];
     const applied = await notifyChange("team", "delete", m.name, `SpineMember:id:${m.id}`, {
@@ -316,6 +320,7 @@ export default function TeamSection() {
       await fetch(`/api/teams?id=${m.id}&type=spine`, { method: "DELETE" });
       markChanged();
       fetchAll();
+      refreshHighlights();
     }
   }
   async function handleSpineSubmit(vals: Record<string, string>) {
@@ -334,6 +339,7 @@ export default function TeamSection() {
         });
         markChanged();
         fetchAll();
+        refreshHighlights();
       }
     } else {
       const apiBody = { type: "spine", name: vals.name, role: vals.role, img: vals.img, order: spine.length };
@@ -348,6 +354,7 @@ export default function TeamSection() {
         });
         markChanged();
         fetchAll();
+        refreshHighlights();
       }
     }
     setSpineModal(null);
@@ -367,6 +374,7 @@ export default function TeamSection() {
       await fetch(`/api/teams?id=${t.dbId}&type=team`, { method: "DELETE" });
       markChanged();
       fetchAll();
+      refreshHighlights();
     }
   }
   async function handleTeamSubmit(vals: Record<string, string>) {
@@ -385,6 +393,7 @@ export default function TeamSection() {
         });
         markChanged();
         fetchAll();
+        refreshHighlights();
       }
     } else {
       const apiBody = { seqId: Date.now(), label: vals.label };
@@ -399,6 +408,7 @@ export default function TeamSection() {
         });
         markChanged();
         fetchAll();
+        refreshHighlights();
       }
     }
     setTeamModal(null);
@@ -424,6 +434,7 @@ export default function TeamSection() {
       await fetch(`/api/teams?id=${memberAtIdx.dbId}&type=member`, { method: "DELETE" });
       markChanged();
       fetchAll();
+      refreshHighlights();
     }
   }
   function handleAddMember(teamId: string, role: string) {
@@ -452,6 +463,7 @@ export default function TeamSection() {
         });
         markChanged();
         fetchAll();
+        refreshHighlights();
       }
     } else {
       const apiBody = { type: "member", teamId, name: vals.name, img: vals.img, role: dbRole, order: 0 };
@@ -466,6 +478,7 @@ export default function TeamSection() {
         });
         markChanged();
         fetchAll();
+        refreshHighlights();
       }
     }
     setMemberModal(null);
@@ -493,7 +506,8 @@ export default function TeamSection() {
           const entityRef = `SpineMember:id:${person.id}`;
           const hasPending = isPending(entityRef);
           return (
-          <div key={person.name + idx} className={`flex flex-col items-center ${hasPending ? "pending-change-highlight" : ""}`}>
+          <ChangeHighlight key={person.name + idx} entityRef={entityRef}>
+          <div className={`flex flex-col items-center ${hasPending ? "pending-change-highlight" : ""}`}>
             {hasPending && <span className="pending-change-badge">PENDING</span>}
             <SpineCard {...person}
               isEditMode={isEditMode}
@@ -502,6 +516,7 @@ export default function TeamSection() {
             />
             <VLine h="h-10" />
           </div>
+          </ChangeHighlight>
         );
         })}
         {isEditMode && (
@@ -518,7 +533,8 @@ export default function TeamSection() {
           {/* Two team columns */}
           <div className="grid grid-cols-2">
             {teams.map((team, tIdx) => (
-              <div key={team.dbId} className="flex flex-col items-center pt-10 px-4">
+              <ChangeHighlight key={team.dbId} entityRef={`Team:id:${team.dbId}`}>
+              <div className="flex flex-col items-center pt-10 px-4">
                 {isEditMode && (
                   <div className="flex gap-2 mb-2">
                     <button onClick={() => handleEditTeam(tIdx)} className="nasa-btn text-xs flex items-center gap-1"><Edit2 size={12} /> Rename</button>
@@ -529,6 +545,7 @@ export default function TeamSection() {
                   onEditMember={handleEditMember} onDeleteMember={handleDeleteMember} onAddMember={handleAddMember}
                 />
               </div>
+              </ChangeHighlight>
             ))}
           </div>
         </div>

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
+import { useHighlight } from "@/lib/highlight-context";
+import ChangeHighlight from "@/components/ui/ChangeHighlight";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
 interface TeamDriveItem { id: string; categoryId: string; label: string; url: string; urlType: string; order: number }
@@ -27,6 +29,7 @@ const RAN_CONFIG_PPM_URL = "https://drive.google.com/...";
 export default function TeamDriveSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
   const { isPending } = usePendingChanges();
+  const { refresh: refreshHighlights } = useHighlight();
   const [drive, setDrive] = useState<TeamDriveCategory[]>([]);
 
   const fetchDrive = useCallback(async () => {
@@ -52,6 +55,7 @@ export default function TeamDriveSection() {
       await fetch(`/api/drive?id=${cat.id}&type=category`, { method: "DELETE" });
       markChanged();
       fetchDrive();
+      refreshHighlights();
     }
   }
   async function handleCatSubmit(vals: Record<string, string>) {
@@ -70,6 +74,7 @@ export default function TeamDriveSection() {
         });
         markChanged();
         fetchDrive();
+        refreshHighlights();
       }
     } else {
       const apiBody = { type: "category", title: vals.title, order: drive.length };
@@ -84,6 +89,7 @@ export default function TeamDriveSection() {
         });
         markChanged();
         fetchDrive();
+        refreshHighlights();
       }
     }
     setCatModal(null);
@@ -105,6 +111,7 @@ export default function TeamDriveSection() {
       await fetch(`/api/drive?id=${item.id}&type=item`, { method: "DELETE" });
       markChanged();
       fetchDrive();
+      refreshHighlights();
     }
   }
   async function handleItemSubmit(vals: Record<string, string>) {
@@ -125,6 +132,7 @@ export default function TeamDriveSection() {
         });
         markChanged();
         fetchDrive();
+        refreshHighlights();
       }
     } else {
       const apiBody = { type: "item", categoryId: cat.id, label: vals.label, url: vals.url, urlType: vals.urlType || "url", order: cat.items.length };
@@ -139,6 +147,7 @@ export default function TeamDriveSection() {
         });
         markChanged();
         fetchDrive();
+        refreshHighlights();
       }
     }
     setItemModal(null);
@@ -148,6 +157,7 @@ export default function TeamDriveSection() {
     const entityRef = `TeamDriveCategory:id:${cat.id}`;
     const hasPending = isPending(entityRef);
     return (
+    <ChangeHighlight entityRef={entityRef}>
     <div className={`flex flex-col md:flex-row gap-8 items-start w-full border-b-[2px] pb-8 relative z-10 ${hasPending ? "pending-change-highlight" : ""}`} style={{ borderColor: "var(--border-color)" }}>
       {hasPending && <span className="pending-change-badge">PENDING</span>}
       <div className="w-full md:w-64 pt-4 shrink-0 text-center md:text-right pr-4">
@@ -188,6 +198,7 @@ export default function TeamDriveSection() {
         )}
       </div>
     </div>
+    </ChangeHighlight>
   );
   };
 

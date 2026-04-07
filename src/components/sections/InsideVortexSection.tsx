@@ -12,6 +12,8 @@ import {
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
+import { useHighlight } from "@/lib/highlight-context";
+import ChangeHighlight from "@/components/ui/ChangeHighlight";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
 interface DBVortexItem { id: string; categoryId: string; content: string; order: number }
@@ -47,6 +49,7 @@ export default function InsideVortexSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const { isEditMode, markChanged, notifyChange } = useEditMode();
   const { isPending } = usePendingChanges();
+  const { refresh: refreshHighlights } = useHighlight();
   const [data, setData] = useState<VortexData>({ categories: [], credits: [] });
 
   const fetchData = useCallback(async () => {
@@ -84,6 +87,7 @@ export default function InsideVortexSection() {
       await fetch(`/api/vortex?id=${cat.id}&type=category`, { method: "DELETE" });
       markChanged();
       fetchData();
+      refreshHighlights();
     }
   }
   async function handleCatSubmit(vals: Record<string, string>) {
@@ -102,6 +106,7 @@ export default function InsideVortexSection() {
         });
         markChanged();
         fetchData();
+        refreshHighlights();
       }
     } else {
       const apiBody = { type: "category", title: vals.title, order: data.categories.length };
@@ -116,6 +121,7 @@ export default function InsideVortexSection() {
         });
         markChanged();
         fetchData();
+        refreshHighlights();
       }
     }
     setCatModal(null);
@@ -134,6 +140,7 @@ export default function InsideVortexSection() {
       await fetch(`/api/vortex?id=${dbItem.id}&type=item`, { method: "DELETE" });
       markChanged();
       fetchData();
+      refreshHighlights();
     }
   }
   async function handleItemSubmit(vals: Record<string, string>) {
@@ -154,6 +161,7 @@ export default function InsideVortexSection() {
         });
         markChanged();
         fetchData();
+        refreshHighlights();
       }
     } else {
       const apiBody = { type: "item", categoryId: cat.id, content: vals.item, order: cat.items.length };
@@ -168,6 +176,7 @@ export default function InsideVortexSection() {
         });
         markChanged();
         fetchData();
+        refreshHighlights();
       }
     }
     setItemModal(null);
@@ -186,6 +195,7 @@ export default function InsideVortexSection() {
       await fetch(`/api/vortex?id=${credit.id}&type=credit`, { method: "DELETE" });
       markChanged();
       fetchData();
+      refreshHighlights();
     }
   }
   async function handleCreditSubmit(vals: Record<string, string>) {
@@ -204,6 +214,7 @@ export default function InsideVortexSection() {
         });
         markChanged();
         fetchData();
+        refreshHighlights();
       }
     } else {
       const apiBody = { type: "credit", name: vals.name, role: vals.role, order: data.credits.length };
@@ -218,6 +229,7 @@ export default function InsideVortexSection() {
         });
         markChanged();
         fetchData();
+        refreshHighlights();
       }
     }
     setCreditModal(null);
@@ -431,8 +443,8 @@ export default function InsideVortexSection() {
                       {data.categories.map((category, idx) => {
                         const catHasPending = isPending(`VortexCategory:id:${category.id}`);
                         return (
+                        <ChangeHighlight key={category.title + idx} entityRef={`VortexCategory:id:${category.id}`}>
                         <motion.div
-                          key={category.title + idx}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: idx * 0.08, ease: "easeOut" }}
@@ -499,6 +511,7 @@ export default function InsideVortexSection() {
                             <button onClick={() => handleAddItem(idx)} className="nasa-btn text-xs mt-3 flex items-center gap-1 self-start"><Plus size={12} /> Add Item</button>
                           )}
                         </motion.div>
+                        </ChangeHighlight>
                         );
                       })}
                     </div>
@@ -530,7 +543,8 @@ export default function InsideVortexSection() {
                       {data.credits.map((credit, idx) => {
                         const creditHasPending = isPending(`VortexCredit:id:${credit.id}`);
                         return (
-                        <div key={idx} className={`flex items-baseline w-full gap-3 group/credit ${creditHasPending ? "pending-change-highlight" : ""}`}>
+                        <ChangeHighlight key={idx} entityRef={`VortexCredit:id:${credit.id}`}>
+                        <div className={`flex items-baseline w-full gap-3 group/credit ${creditHasPending ? "pending-change-highlight" : ""}`}>
                           {/* Left: Name */}
                           <span className="shrink-0 font-display uppercase tracking-widest text-sm md:text-base whitespace-nowrap" style={{ color: "var(--text-primary)", textShadow: "0 0 8px rgba(255,255,255,0.2)" }}>
                             {credit.name}
@@ -552,6 +566,7 @@ export default function InsideVortexSection() {
                             </span>
                           )}
                         </div>
+                        </ChangeHighlight>
                         );
                       })}
                     </div>

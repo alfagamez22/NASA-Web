@@ -390,10 +390,13 @@ model ActivityLog {
   username   String
   userId     String   @map("user_id")
   status     String   @default("applied") // "applied" | "pending" | "approved" | "declined"
+  /// The entity type and id affected (e.g. "ContentSection:slug:abc123")
+  entityRef  String?  @map("entity_ref")
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([createdAt])
+  @@index([entityRef])
   @@map("activity_logs")
 }
 
