@@ -104,6 +104,28 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
     }
   };
 
+  const handleDeleteLog = async (logId: string) => {
+    if (!confirm("Delete this audit log entry permanently?")) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/audit-log?id=${encodeURIComponent(logId)}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete audit log");
+      }
+
+      await fetchAuditLogs();
+    } catch (error) {
+      console.error("Error deleting audit log:", error);
+      alert("Error: Failed to delete audit log entry.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRestoreItem = async (softDeleteId: string) => {
     try {
       setIsLoading(true);
@@ -297,9 +319,24 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
                                 {log.ipAddress && `IP: ${log.ipAddress}`}
                               </p>
                             </div>
-                            <time className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                              {formatDate(log.createdAt)}
-                            </time>
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <time className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                                {formatDate(log.createdAt)}
+                              </time>
+                              <button
+                                onClick={() => handleDeleteLog(log.id)}
+                                disabled={isLoading}
+                                className="flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-mono rounded transition-colors"
+                                style={{
+                                  border: "1px solid rgba(239,68,68,0.5)",
+                                  color: "#f87171",
+                                  opacity: isLoading ? 0.5 : 1,
+                                }}
+                                title="Delete this log entry"
+                              >
+                                <Trash2 size={10} /> Delete
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}

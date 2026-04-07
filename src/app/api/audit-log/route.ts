@@ -34,10 +34,28 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(log, { status: 201 });
 }
 
-// DELETE /api/audit-log — super_admin can clear all audit logs
+// DELETE /api/audit-log — super_admin can clear all logs or delete one by id
 export async function DELETE(req: NextRequest) {
   const { error } = await requireSuperAdmin();
   if (error) return error;
+
+  const logId = req.nextUrl.searchParams.get("id");
+
+  if (logId) {
+    try {
+      await prisma.auditLog.delete({ where: { id: logId } });
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Audit log not found." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Audit log deleted.",
+    });
+  }
 
   await prisma.auditLog.deleteMany({});
 
