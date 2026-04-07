@@ -87,18 +87,56 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/teams?id=xxx&type=spine|team|member
 export async function DELETE(req: NextRequest) {
-  const { error } = await requireEditor();
+  const { error, session } = await requireEditor();
   if (error) return error;
 
   const id = req.nextUrl.searchParams.get("id");
   const type = req.nextUrl.searchParams.get("type");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
+  const username = (session!.user as { username?: string }).username || "unknown";
+
   if (type === "spine") {
+    const member = await prisma.spineMember.findUnique({ where: { id } });
+    if (!member) return NextResponse.json({ error: "Member not found" }, { status: 404 });
+
+    await prisma.softDelete.create({
+      data: {
+        entityType: "SpineMember",
+        entityId: id,
+        entityData: member as any,
+        deletedBy: username,
+        purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     await prisma.spineMember.delete({ where: { id } });
   } else if (type === "member") {
+    const member = await prisma.teamMember.findUnique({ where: { id } });
+    if (!member) return NextResponse.json({ error: "Member not found" }, { status: 404 });
+
+    await prisma.softDelete.create({
+      data: {
+        entityType: "TeamMember",
+        entityId: id,
+        entityData: member as any,
+        deletedBy: username,
+        purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     await prisma.teamMember.delete({ where: { id } });
   } else {
+    const team = await prisma.team.findUnique({ where: { id } });
+    if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
+
+    await prisma.softDelete.create({
+      data: {
+        entityType: "Team",
+        entityId: id,
+        entityData: team as any,
+        deletedBy: username,
+        purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     await prisma.team.delete({ where: { id } });
   }
 

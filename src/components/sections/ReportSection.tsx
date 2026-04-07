@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import MediaEmbed from "@/components/content/MediaEmbed";
 import { useEditMode } from "@/lib/edit-mode-context";
+import { usePendingChanges } from "@/lib/pending-context";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
 interface ReportSlide {
@@ -39,6 +40,7 @@ const SLIDE_FIELDS: FormField[] = [
 
 export default function ReportSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const { isPending } = usePendingChanges();
   const [slides, setSlides] = useState<ReportSlide[]>(DEFAULT_SLIDES);
   const [loaded, setLoaded] = useState(false);
 
@@ -150,8 +152,12 @@ export default function ReportSection() {
 
         {/* Media Embed Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {slides.map((slide, idx) => (
-            <div key={slide.id} className={`relative group/slide ${slide.colSpan === 2 ? "md:col-span-2" : ""}`}>
+          {slides.map((slide, idx) => {
+            const entityRef = `ContentSection:slug:${slide.id}`;
+            const hasPending = isPending(entityRef);
+            return (
+            <div key={slide.id} className={`relative group/slide ${slide.colSpan === 2 ? "md:col-span-2" : ""} ${hasPending ? "pending-change-highlight" : ""}`}>
+              {hasPending && <span className="pending-change-badge">PENDING</span>}
               {isEditMode && (
                 <div className="absolute top-2 right-2 z-20 hidden group-hover/slide:flex gap-1">
                   <button onClick={() => handleEdit(idx)} className="p-1 bg-cyan-600/80 rounded hover:bg-cyan-500"><Edit2 size={12} /></button>
@@ -166,7 +172,8 @@ export default function ReportSection() {
                 </div>
               )}
             </div>
-          ))}
+            );
+            })}
         </div>
         {isEditMode && (
           <button onClick={handleAdd} className="nasa-btn text-sm flex items-center gap-2 mx-auto"><Plus size={14} /> Add Slide</button>

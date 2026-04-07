@@ -55,12 +55,35 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/categories?slug=xxx
 export async function DELETE(req: NextRequest) {
-  const { error } = await requireEditor();
+  const { error, session } = await requireEditor();
   if (error) return error;
 
   const slug = req.nextUrl.searchParams.get("slug");
   if (!slug) return NextResponse.json({ error: "slug required" }, { status: 400 });
 
+  // Get full category data before deletion
+  const category = await prisma.toolCategory.findUnique({
+    where: { slug },
+    include: { tools: { orderBy: { order: "asc" } } },
+  });
+
+  if (!category) {
+    return NextResponse.json({ error: "Category not found" }, { status: 404 });
+  }
+
+  // Create soft-delete record
+  const username = (session!.user as { username?: string }).username || "unknown";
+  await prisma.softDelete.create({
+    data: {
+      entityType: "ToolCategory",
+      entityId: category.id,
+      entityData: category as any,
+      deletedBy: username,
+      purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    },
+  });
+
+  // Now delete the category
   await prisma.toolCategory.delete({ where: { slug } });
   return NextResponse.json({ success: true });
 }

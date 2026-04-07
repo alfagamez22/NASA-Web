@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Edit2, GripVertical } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
+import { usePendingChanges } from "@/lib/pending-context";
 import CollapsibleCategory from "@/components/ui/CollapsibleCategory";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 import { CONTACT_NUMBERS } from "@/lib/constants";
@@ -24,6 +25,7 @@ const TOOL_FIELDS: FormField[] = [
 
 export default function HomeSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const { isPending } = usePendingChanges();
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -185,8 +187,12 @@ export default function HomeSection() {
 
         <div className="scrollable-row relative z-10 flex flex-col items-center justify-center transition-all duration-300 w-full no-scrollbar px-4 pt-4 pb-10">
           <div className="w-full max-w-[1500px] flex flex-col md:flex-row md:justify-center gap-4">
-            {categories.map((category) => (
-              <div key={category.slug} className="relative group/cat flex-1 min-w-0">
+            {categories.map((category) => {
+              const entityRef = `ToolCategory:slug:${category.slug}`;
+              const hasPending = isPending(entityRef);
+              return (
+              <div key={category.slug} className={`relative group/cat flex-1 min-w-0 ${hasPending ? "pending-change-highlight" : ""}`}>
+                {hasPending && <span className="pending-change-badge">PENDING</span>}
                 {isEditMode && (
                   <div className="absolute top-1 right-1 z-30 flex gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity">
                     <button
@@ -219,7 +225,8 @@ export default function HomeSection() {
                   onDeleteTool={(tool) => handleDeleteTool(category.slug, tool)}
                 />
               </div>
-            ))}
+            );
+            })}
           </div>
 
         </div>

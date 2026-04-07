@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
+import { usePendingChanges } from "@/lib/pending-context";
 import SlideCard from "@/components/content/SlideCard";
 import TBAReport from "@/components/sections/TBAReport";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
@@ -35,6 +36,7 @@ interface RegionalReportSectionProps {
 
 export default function RegionalReportSection({ reportType, moduleSlug }: RegionalReportSectionProps) {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const { isPending } = usePendingChanges();
   const [regions, setRegions] = useState<ContentSection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -155,8 +157,12 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
       </div>
 
       <div className="max-w-7xl mx-auto space-y-16 py-12 px-4 md:px-8">
-        {regions.map((region) => (
-          <div key={region.slug} className="space-y-8 relative group/reg">
+        {regions.map((region) => {
+          const entityRef = `ContentSection:slug:${region.slug}`;
+          const hasPending = isPending(entityRef);
+          return (
+          <div key={region.slug} className={`space-y-8 relative group/reg ${hasPending ? "pending-change-highlight" : ""}`}>
+            {hasPending && <span className="pending-change-badge">PENDING</span>}
             {isEditMode && (
               <div className="absolute top-2 right-2 z-30 flex gap-1 opacity-0 group-hover/reg:opacity-100 transition-opacity">
                 <button onClick={() => setEditingSection(region)} className="p-1.5 bg-black/70 text-cyan-400 hover:text-white rounded" title="Edit">
@@ -183,7 +189,8 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
               ))}
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       <ItemFormModal

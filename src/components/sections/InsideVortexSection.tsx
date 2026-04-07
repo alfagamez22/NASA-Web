@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
+import { usePendingChanges } from "@/lib/pending-context";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
 interface DBVortexItem { id: string; categoryId: string; content: string; order: number }
@@ -45,6 +46,7 @@ export default function InsideVortexSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const { isPending } = usePendingChanges();
   const [data, setData] = useState<VortexData>({ categories: [], credits: [] });
 
   const fetchData = useCallback(async () => {
@@ -426,13 +428,15 @@ export default function InsideVortexSection() {
 
                     {/* Subpage Grid of Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 w-full pb-8">
-                      {data.categories.map((category, idx) => (
+                      {data.categories.map((category, idx) => {
+                        const catHasPending = isPending(`VortexCategory:id:${category.id}`);
+                        return (
                         <motion.div
                           key={category.title + idx}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: idx * 0.08, ease: "easeOut" }}
-                          className="nasa-card flex flex-col h-full hover:-translate-y-1 transition-transform duration-300 group/card relative"
+                          className={`nasa-card flex flex-col h-full hover:-translate-y-1 transition-transform duration-300 group/card relative ${catHasPending ? "pending-change-highlight" : ""}`}
                           style={{
                             background:
                               "linear-gradient(135deg, rgba(5, 10, 21, 0.75) 0%, rgba(2, 5, 12, 0.95) 100%)",
@@ -467,8 +471,10 @@ export default function InsideVortexSection() {
 
                           {/* Information List Items */}
                           <ul className="flex flex-col gap-4 flex-grow">
-                            {category.items.map((item, iIdx) => (
-                              <li key={item + iIdx} className="flex items-start gap-4 group/item">
+                            {category.items.map((item, iIdx) => {
+                              const itemHasPending = isPending(`VortexItem:id:${category.dbItems[iIdx]?.id}`);
+                              return (
+                              <li key={item + iIdx} className={`flex items-start gap-4 group/item ${itemHasPending ? "pending-change-highlight" : ""}`}>
                                 <span
                                   className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-[var(--accent-light)] transition-all duration-300 group-hover:bg-[var(--accent-color)]"
                                   style={{ boxShadow: "0 0 8px var(--glow-color)" }}
@@ -486,13 +492,15 @@ export default function InsideVortexSection() {
                                   </span>
                                 )}
                               </li>
-                            ))}
+                              );
+                            })}
                           </ul>
                           {isEditMode && (
                             <button onClick={() => handleAddItem(idx)} className="nasa-btn text-xs mt-3 flex items-center gap-1 self-start"><Plus size={12} /> Add Item</button>
                           )}
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {isEditMode && (
                       <button onClick={handleAddCat} className="nasa-btn text-sm flex items-center gap-2 mx-auto mb-4"><Plus size={14} /> Add Category</button>
@@ -519,8 +527,10 @@ export default function InsideVortexSection() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6 w-full max-w-6xl mx-auto">
-                      {data.credits.map((credit, idx) => (
-                        <div key={idx} className="flex items-baseline w-full gap-3 group/credit">
+                      {data.credits.map((credit, idx) => {
+                        const creditHasPending = isPending(`VortexCredit:id:${credit.id}`);
+                        return (
+                        <div key={idx} className={`flex items-baseline w-full gap-3 group/credit ${creditHasPending ? "pending-change-highlight" : ""}`}>
                           {/* Left: Name */}
                           <span className="shrink-0 font-display uppercase tracking-widest text-sm md:text-base whitespace-nowrap" style={{ color: "var(--text-primary)", textShadow: "0 0 8px rgba(255,255,255,0.2)" }}>
                             {credit.name}
@@ -542,7 +552,8 @@ export default function InsideVortexSection() {
                             </span>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {isEditMode && (
                       <button onClick={handleAddCredit} className="nasa-btn text-sm flex items-center gap-2 mx-auto mt-6"><Plus size={14} /> Add Credit</button>

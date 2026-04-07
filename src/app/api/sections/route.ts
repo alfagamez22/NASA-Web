@@ -203,12 +203,42 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/sections?slug=xxx
 export async function DELETE(req: NextRequest) {
-  const { error } = await requireEditor();
+  const { error, session } = await requireEditor();
   if (error) return error;
 
   const slug = req.nextUrl.searchParams.get("slug");
   if (!slug) return NextResponse.json({ error: "slug required" }, { status: 400 });
 
+  // Get full section data before deletion
+  const section = await prisma.contentSection.findUnique({
+    where: { slug },
+    include: {
+      media: { orderBy: { order: "asc" } },
+      links: { orderBy: { order: "asc" } },
+      slides: {
+        orderBy: { order: "asc" },
+        include: { columns: { orderBy: { order: "asc" } } },
+      },
+    },
+  });
+
+  if (!section) {
+    return NextResponse.json({ error: "Section not found" }, { status: 404 });
+  }
+
+  // Create soft-delete record
+  const username = (session!.user as { username?: string }).username || "unknown";
+  await prisma.softDelete.create({
+    data: {
+      entityType: "ContentSection",
+      entityId: section.id,
+      entityData: section as any,
+      deletedBy: username,
+      purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    },
+  });
+
+  // Now delete the section
   await prisma.contentSection.delete({ where: { slug } });
   return NextResponse.json({ success: true });
 }

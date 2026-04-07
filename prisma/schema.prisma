@@ -30,6 +30,7 @@ model User {
 }
 
 enum UserRole {
+  super_admin @map("super_admin")
   admin
   editor
   viewer
@@ -394,4 +395,39 @@ model ActivityLog {
   @@index([userId])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+// ─── Soft Deletes (Recycle Bin) ──────────────────────────────────────────────
+
+model SoftDelete {
+  id          String   @id @default(cuid())
+  entityType  String   @map("entity_type") // e.g. "ContentSection", "Tool", "ToolCategory", etc.
+  entityId    String   @map("entity_id")
+  entityData  Json     @map("entity_data") // Full snapshot of deleted entity
+  deletedBy   String   @map("deleted_by")
+  deletedAt   DateTime @default(now()) @map("deleted_at")
+  /// Auto-purge date (30 days after deletion)
+  purgeAt     DateTime @map("purge_at")
+  restoredAt  DateTime? @map("restored_at")
+
+  @@index([entityType])
+  @@index([purgeAt])
+  @@index([restoredAt])
+  @@map("soft_deletes")
+}
+
+// ─── Audit Log (Login / Logout Tracking) ─────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // "login" | "logout"
+  userId    String   @map("user_id")
+  username  String
+  userRole  String   @map("user_role")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

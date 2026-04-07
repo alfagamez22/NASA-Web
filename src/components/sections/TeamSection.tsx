@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { TEAM_EMAIL } from "@/lib/constants";
 import { useEditMode } from "@/lib/edit-mode-context";
+import { usePendingChanges } from "@/lib/pending-context";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
 interface SpineMember { id: string; name: string; role: string; img: string; order: number }
@@ -279,6 +280,7 @@ function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMembe
 
 export default function TeamSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const { isPending } = usePendingChanges();
   const [spine, setSpine] = useState<SpineMember[]>([]);
   const [teams, setTeams] = useState<TeamData[]>([]);
 
@@ -487,8 +489,12 @@ export default function TeamSection() {
       <div className="flex flex-col items-center">
 
         {/* ── Central Spine (vertical chain) ──────────────────────────────── */}
-        {spine.map((person, idx) => (
-          <div key={person.name + idx} className="flex flex-col items-center">
+        {spine.map((person, idx) => {
+          const entityRef = `SpineMember:id:${person.id}`;
+          const hasPending = isPending(entityRef);
+          return (
+          <div key={person.name + idx} className={`flex flex-col items-center ${hasPending ? "pending-change-highlight" : ""}`}>
+            {hasPending && <span className="pending-change-badge">PENDING</span>}
             <SpineCard {...person}
               isEditMode={isEditMode}
               onEdit={() => handleEditSpine(idx, person)}
@@ -496,7 +502,8 @@ export default function TeamSection() {
             />
             <VLine h="h-10" />
           </div>
-        ))}
+        );
+        })}
         {isEditMode && (
           <button onClick={handleAddSpine} className="nasa-btn text-xs mb-4 flex items-center gap-1"><Plus size={14} /> Add Spine Member</button>
         )}

@@ -132,5 +132,16 @@ export async function PUT(req: NextRequest) {
     data: { status: newStatus },
   });
 
+  // Mark any existing notifications for this change as read (to prevent duplicates)
+  await prisma.notification.updateMany({
+    where: {
+      page: change.page,
+      changeType: change.changeType,
+      itemName: change.itemName,
+      userId: change.userId,
+    },
+    data: { read: true },
+  });
+
   return NextResponse.json(updated);
 }

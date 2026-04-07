@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
-export type UserRole = "admin" | "editor" | "viewer";
+export type UserRole = "super_admin" | "admin" | "editor" | "viewer";
 
 export interface UserAccount {
   id: string;
@@ -15,6 +15,7 @@ export interface UserAccount {
 interface AuthContextType {
   user: UserAccount | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isEditor: boolean;
   isViewer: boolean;
   isLoggedIn: boolean;
@@ -50,12 +51,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (result?.error) {
       return "Invalid username or password";
     }
+    // Audit: record login (fire-and-forget; session not ready yet, so pass username)
+    fetch("/api/audit-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "login", userId: "_pending", username, userRole: "_pending" }),
+    }).catch(() => {});
     return null;
   }, []);
 
   const logout = useCallback(() => {
+    // Audit: record logout before signing out
+    if (user) {
+      fetch("/api/audit-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout", userId: user.id, username: user.username, userRole: user.role }),
+      }).catch(() => {});
+    }
     signOut({ redirect: false });
-  }, []);
+  }, [user]);
 
   const refreshUser = useCallback(() => {
     update();
@@ -71,14 +86,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isSuperAdmin = user?.role === "super_admin";
   const isEditor = user?.role === "editor";
   const isViewer = user?.role === "viewer";
   const isLoggedIn = !!user;
   const loading = status === "loading";
 
   const value: AuthContextType = {
-    user, isAdmin, isEditor, isViewer, isLoggedIn, loading, login, logout, refreshUser, canAccessPage,
+    user, isAdmin, isSuperAdmin, isEditor, isViewer, isLoggedIn, loading, login, logout, refreshUser, canAccessPage,
   };
 
   return (

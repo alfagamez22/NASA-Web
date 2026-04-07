@@ -66,16 +66,42 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/drive?id=xxx&type=category|item
 export async function DELETE(req: NextRequest) {
-  const { error } = await requireEditor();
+  const { error, session } = await requireEditor();
   if (error) return error;
 
   const id = req.nextUrl.searchParams.get("id");
   const type = req.nextUrl.searchParams.get("type");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
+  const username = (session!.user as { username?: string }).username || "unknown";
+
   if (type === "category") {
+    const category = await prisma.teamDriveCategory.findUnique({ where: { id } });
+    if (!category) return NextResponse.json({ error: "Category not found" }, { status: 404 });
+
+    await prisma.softDelete.create({
+      data: {
+        entityType: "TeamDriveCategory",
+        entityId: id,
+        entityData: category as any,
+        deletedBy: username,
+        purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     await prisma.teamDriveCategory.delete({ where: { id } });
   } else {
+    const item = await prisma.teamDriveItem.findUnique({ where: { id } });
+    if (!item) return NextResponse.json({ error: "Item not found" }, { status: 404 });
+
+    await prisma.softDelete.create({
+      data: {
+        entityType: "TeamDriveItem",
+        entityId: id,
+        entityData: item as any,
+        deletedBy: username,
+        purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     await prisma.teamDriveItem.delete({ where: { id } });
   }
 

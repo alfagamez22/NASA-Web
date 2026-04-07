@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
+import { usePendingChanges } from "@/lib/pending-context";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 
 interface TeamDriveItem { id: string; categoryId: string; label: string; url: string; urlType: string; order: number }
@@ -25,6 +26,7 @@ const RAN_CONFIG_PPM_URL = "https://drive.google.com/...";
 
 export default function TeamDriveSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const { isPending } = usePendingChanges();
   const [drive, setDrive] = useState<TeamDriveCategory[]>([]);
 
   const fetchDrive = useCallback(async () => {
@@ -142,8 +144,12 @@ export default function TeamDriveSection() {
     setItemModal(null);
   }
 
-  const CategoryRow = ({ cat, catIdx }: { cat: TeamDriveCategory; catIdx: number }) => (
-    <div className="flex flex-col md:flex-row gap-8 items-start w-full border-b-[2px] pb-8 relative z-10" style={{ borderColor: "var(--border-color)" }}>
+  const CategoryRow = ({ cat, catIdx }: { cat: TeamDriveCategory; catIdx: number }) => {
+    const entityRef = `TeamDriveCategory:id:${cat.id}`;
+    const hasPending = isPending(entityRef);
+    return (
+    <div className={`flex flex-col md:flex-row gap-8 items-start w-full border-b-[2px] pb-8 relative z-10 ${hasPending ? "pending-change-highlight" : ""}`} style={{ borderColor: "var(--border-color)" }}>
+      {hasPending && <span className="pending-change-badge">PENDING</span>}
       <div className="w-full md:w-64 pt-4 shrink-0 text-center md:text-right pr-4">
         <h3 className="font-display text-4xl uppercase tracking-widest text-nasa-light-cyan" style={{ textShadow: "0 0 10px var(--glow-color)" }}>
           {cat.title}:
@@ -183,6 +189,7 @@ export default function TeamDriveSection() {
       </div>
     </div>
   );
+  };
 
   return (
     <motion.div

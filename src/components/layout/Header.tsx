@@ -4,24 +4,30 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Search, Settings, LogOut, Pencil, X, Check, Bell, Move, Edit2, Plus, Trash2 } from "lucide-react";
+import { Search, Settings, LogOut, Pencil, X, Check, Bell, Move, Edit2, Plus, Trash2, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEditMode } from "@/lib/edit-mode-context";
 
 
 import SearchModal from "./SearchModal";
 import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
+import EditorNotificationPanel from "@/components/editor/EditorNotificationPanel";
+import SuperAdminPanel from "@/components/admin/SuperAdminPanel";
+import { usePendingChanges } from "@/lib/pending-context";
 
 interface SubNavItem { display: string; href: string; format?: string }
 interface ModuleData { id: string; slug: string; display: string; href: string; subNav?: SubNavItem[] | null }
 
 export default function Header() {
   const pathname = usePathname() ?? "";
-  const { user, isAdmin, isEditor, logout } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isEditor, logout } = useAuth();
   const { isEditMode, isCanvasMode, enterEditMode, cancelEdit, applyEdit, toggleCanvasMode, showCancelDialog, confirmCancel, denyCancelDialog } = useEditMode();
+  const { unresolvedCount } = usePendingChanges();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isEditorNotificationsOpen, setIsEditorNotificationsOpen] = useState(false);
+  const [isSuperAdminOpen, setIsSuperAdminOpen] = useState(false);
 
   // Live nav data from DB
   const [modules, setModules] = useState<ModuleData[]>([]);
@@ -293,6 +299,22 @@ export default function Header() {
             </button>
           )}
 
+          {/* Notification Bell (Editor only) */}
+          {isEditor && !isAdmin && (
+            <button
+              onClick={() => setIsEditorNotificationsOpen(true)}
+              className="relative text-nasa-gray hover:text-white transition-colors"
+              title="Editor Notifications"
+            >
+              <Bell size={18} />
+              {unresolvedCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full">
+                  {unresolvedCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Settings Gear (Admin only) */}
           {isAdmin && (
             <button
@@ -301,6 +323,17 @@ export default function Header() {
               title="Admin Settings"
             >
               <Settings size={18} />
+            </button>
+          )}
+
+          {/* Shield Icon (Super Admin only) */}
+          {isSuperAdmin && (
+            <button
+              onClick={() => setIsSuperAdminOpen(true)}
+              className="text-nasa-gray hover:text-yellow-400 transition-colors"
+              title="Super Admin Panel"
+            >
+              <Shield size={18} />
             </button>
           )}
 
@@ -345,6 +378,8 @@ export default function Header() {
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <AdminSettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <EditorNotificationPanel isOpen={isEditorNotificationsOpen} onClose={() => setIsEditorNotificationsOpen(false)} />
+      <SuperAdminPanel isOpen={isSuperAdminOpen} onClose={() => setIsSuperAdminOpen(false)} />
 
       {/* Nav Edit Modal */}
       {editModal && (

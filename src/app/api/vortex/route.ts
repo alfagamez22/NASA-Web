@@ -106,18 +106,56 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/vortex?id=xxx&type=category|item|credit
 export async function DELETE(req: NextRequest) {
-  const { error } = await requireEditor();
+  const { error, session } = await requireEditor();
   if (error) return error;
 
   const id = req.nextUrl.searchParams.get("id");
   const type = req.nextUrl.searchParams.get("type");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
+  const username = (session!.user as { username?: string }).username || "unknown";
+
   if (type === "category") {
+    const category = await prisma.vortexCategory.findUnique({ where: { id } });
+    if (!category) return NextResponse.json({ error: "Category not found" }, { status: 404 });
+
+    await prisma.softDelete.create({
+      data: {
+        entityType: "VortexCategory",
+        entityId: id,
+        entityData: category as any,
+        deletedBy: username,
+        purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     await prisma.vortexCategory.delete({ where: { id } });
   } else if (type === "item") {
+    const item = await prisma.vortexItem.findUnique({ where: { id } });
+    if (!item) return NextResponse.json({ error: "Item not found" }, { status: 404 });
+
+    await prisma.softDelete.create({
+      data: {
+        entityType: "VortexItem",
+        entityId: id,
+        entityData: item as any,
+        deletedBy: username,
+        purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     await prisma.vortexItem.delete({ where: { id } });
   } else if (type === "credit") {
+    const credit = await prisma.vortexCredit.findUnique({ where: { id } });
+    if (!credit) return NextResponse.json({ error: "Credit not found" }, { status: 404 });
+
+    await prisma.softDelete.create({
+      data: {
+        entityType: "VortexCredit",
+        entityId: id,
+        entityData: credit as any,
+        deletedBy: username,
+        purgeAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     await prisma.vortexCredit.delete({ where: { id } });
   }
 

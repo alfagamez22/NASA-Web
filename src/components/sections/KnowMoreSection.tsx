@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
+import { usePendingChanges } from "@/lib/pending-context";
 import ContentSectionCard from "@/components/content/ContentSectionCard";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
 import type { ContentSection } from "@/lib/types";
@@ -36,6 +37,7 @@ const SECTION_FIELDS: FormField[] = [
 
 export default function KnowMoreSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
+  const { isPending } = usePendingChanges();
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -171,8 +173,12 @@ export default function KnowMoreSection() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {sections.map((section) => (
-          <div key={section.slug} className="relative group/sec">
+        {sections.map((section) => {
+          const entityRef = `ContentSection:slug:${section.slug}`;
+          const hasPending = isPending(entityRef);
+          return (
+          <div key={section.slug} className={`relative group/sec ${hasPending ? "pending-change-highlight" : ""}`}>
+            {hasPending && <span className="pending-change-badge">PENDING</span>}
             {isEditMode && (
               <div className="absolute top-2 right-2 z-30 flex gap-1 opacity-0 group-hover/sec:opacity-100 transition-opacity">
                 <button onClick={() => setEditingSection(section)} className="p-1.5 bg-black/70 text-cyan-400 hover:text-white rounded" title="Edit">
@@ -185,7 +191,8 @@ export default function KnowMoreSection() {
             )}
             <ContentSectionCard section={section} />
           </div>
-        ))}
+        );
+        })}
       </div>
 
       <ItemFormModal
