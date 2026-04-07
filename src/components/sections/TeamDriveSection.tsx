@@ -43,23 +43,27 @@ export default function TeamDriveSection() {
   function handleEditCategory(idx: number) { setCatModal({ mode: "edit", idx, init: { title: drive[idx].title } }); }
   async function handleDeleteCategory(idx: number) {
     await fetch(`/api/drive?id=${drive[idx].id}&type=category`, { method: "DELETE" });
-    markChanged(); notifyChange("team-drive", "delete", "drive category"); fetchDrive();
+    markChanged(); notifyChange("team-drive", "delete", drive[idx].title, `TeamDriveCategory:id:${drive[idx].id}`, drive[idx]); fetchDrive();
   }
   async function handleCatSubmit(vals: Record<string, string>) {
     if (catModal?.mode === "edit" && catModal.idx != null) {
+      const cat = drive[catModal.idx];
+      const snapshot = { title: cat.title };
       await fetch("/api/drive", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "category", id: drive[catModal.idx].id, title: vals.title }),
+        body: JSON.stringify({ type: "category", id: cat.id, title: vals.title }),
       });
+      markChanged(); notifyChange("team-drive", "edit", vals.title, `TeamDriveCategory:id:${cat.id}`, snapshot); setCatModal(null); fetchDrive();
     } else {
-      await fetch("/api/drive", {
+      const res = await fetch("/api/drive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "category", title: vals.title, order: drive.length }),
       });
+      const created = await res.json().catch(() => null);
+      markChanged(); notifyChange("team-drive", "add", vals.title, created?.id ? `TeamDriveCategory:id:${created.id}` : undefined); setCatModal(null); fetchDrive();
     }
-    markChanged(); notifyChange("team-drive", catModal?.mode === "edit" ? "edit" : "add", vals.title); setCatModal(null); fetchDrive();
   }
 
   // ── Item CRUD ──────────────────────────────────────────────────────────
@@ -72,26 +76,29 @@ export default function TeamDriveSection() {
   async function handleDeleteItem(catIdx: number, itemIdx: number) {
     const item = drive[catIdx].items[itemIdx];
     await fetch(`/api/drive?id=${item.id}&type=item`, { method: "DELETE" });
-    markChanged(); notifyChange("team-drive", "delete", "drive item"); fetchDrive();
+    markChanged(); notifyChange("team-drive", "delete", item.label, `TeamDriveItem:id:${item.id}`, item); fetchDrive();
   }
   async function handleItemSubmit(vals: Record<string, string>) {
     if (!itemModal) return;
     const cat = drive[itemModal.catIdx];
     if (itemModal.mode === "edit" && itemModal.itemIdx != null) {
       const item = cat.items[itemModal.itemIdx];
+      const snapshot = { label: item.label, url: item.url, urlType: item.urlType };
       await fetch("/api/drive", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "item", id: item.id, label: vals.label, url: vals.url, urlType: vals.urlType || "url" }),
       });
+      markChanged(); notifyChange("team-drive", "edit", vals.label, `TeamDriveItem:id:${item.id}`, snapshot); setItemModal(null); fetchDrive();
     } else {
-      await fetch("/api/drive", {
+      const res = await fetch("/api/drive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "item", categoryId: cat.id, label: vals.label, url: vals.url, urlType: vals.urlType || "url", order: cat.items.length }),
       });
+      const created = await res.json().catch(() => null);
+      markChanged(); notifyChange("team-drive", "add", vals.label, created?.id ? `TeamDriveItem:id:${created.id}` : undefined); setItemModal(null); fetchDrive();
     }
-    markChanged(); notifyChange("team-drive", itemModal.mode === "edit" ? "edit" : "add", vals.label); setItemModal(null); fetchDrive();
   }
 
   const CategoryRow = ({ cat, catIdx }: { cat: TeamDriveCategory; catIdx: number }) => (

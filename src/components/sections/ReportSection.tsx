@@ -66,7 +66,7 @@ export default function ReportSection() {
   async function handleDelete(idx: number) {
     const slide = slides[idx];
     await fetch(`/api/sections?slug=${slide.id}`, { method: "DELETE" });
-    markChanged(); notifyChange("report", "delete", "report slide");
+    markChanged(); notifyChange("report", "delete", slide.label, `ReportSlide:id:${slide.id}`, slide);
     fetchSlides();
   }
 
@@ -74,6 +74,7 @@ export default function ReportSection() {
     const colSpan = parseInt(vals.colSpan) || 1;
     if (modal?.mode === "edit" && modal.idx != null) {
       const slide = slides[modal.idx];
+      const snapshot = { label: slide.label, gurl: slide.gurl, colSpan: slide.colSpan };
       await fetch("/api/sections", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -82,6 +83,7 @@ export default function ReportSection() {
           media: [{ type: "google-slides", gurl: vals.gurl }],
         }),
       });
+      markChanged(); notifyChange("report", "edit", vals.label, `ReportSlide:id:${slide.id}`, snapshot);
     } else {
       const slug = generateSlug();
       await fetch("/api/sections", {
@@ -92,8 +94,8 @@ export default function ReportSection() {
           media: [{ type: "google-slides", gurl: vals.gurl }],
         }),
       });
+      markChanged(); notifyChange("report", "add", vals.label, `ContentSection:slug:${slug}`);
     }
-    markChanged(); notifyChange("report", modal?.mode === "edit" ? "edit" : "add", vals.label);
     setModal(null);
     fetchSlides();
   }

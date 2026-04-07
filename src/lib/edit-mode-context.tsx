@@ -17,7 +17,7 @@ interface EditModeContextType {
   setShowCancelDialog: (v: boolean) => void;
   confirmCancel: () => void;
   denyCancelDialog: () => void;
-  notifyChange: (page: string, changeType: "add" | "edit" | "delete", itemName: string) => void;
+  notifyChange: (page: string, changeType: "add" | "edit" | "delete", itemName: string, entityRef?: string, snapshot?: unknown) => void;
 }
 
 const EditModeContext = createContext<EditModeContextType | undefined>(undefined);
@@ -77,12 +77,26 @@ export function EditModeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const notifyChange = useCallback(
-    (page: string, changeType: "add" | "edit" | "delete", itemName: string) => {
-      if (user && isEditor && !isAdmin) {
+    (page: string, changeType: "add" | "edit" | "delete", itemName: string, entityRef?: string, snapshot?: unknown) => {
+      if (!user) return;
+      if (isEditor && !isAdmin) {
+        // Editor: create a pending change (API also creates notification + activity log)
+        fetch("/api/pending-changes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ page, changeType, itemName, entityRef, snapshot }),
+        }).catch(() => {});
+      } else if (isAdmin) {
+        // Admin: changes are instant — just log them
         fetch("/api/notifications", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ page, changeType, itemName }),
+        }).catch(() => {});
+        fetch("/api/activity-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ page, changeType, itemName, status: "applied" }),
         }).catch(() => {});
       }
     },

@@ -54,19 +54,20 @@ export default function HomeSection() {
       body: JSON.stringify({ slug, title: values.title, parentSlug: "home", order: categories.length }),
     });
     markChanged();
-    notifyChange("home", "add", values.title);
+    notifyChange("home", "add", values.title, `ToolCategory:slug:${slug}`);
     fetchCategories();
   }
 
   async function handleEditCategory(values: Record<string, string>) {
     if (!editingCategory) return;
+    const snapshot = { title: editingCategory.title };
     await fetch("/api/categories", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug: editingCategory.slug, title: values.title }),
     });
     markChanged();
-    notifyChange("home", "edit", values.title);
+    notifyChange("home", "edit", values.title, `ToolCategory:slug:${editingCategory.slug}`, snapshot);
     setEditingCategory(null);
     fetchCategories();
   }
@@ -75,7 +76,7 @@ export default function HomeSection() {
     if (confirm(`Delete category "${cat.title}" and all its tools?`)) {
       await fetch(`/api/categories?slug=${cat.slug}`, { method: "DELETE" });
       markChanged();
-      notifyChange("home", "delete", cat.title);
+      notifyChange("home", "delete", cat.title, `ToolCategory:slug:${cat.slug}`, cat);
       fetchCategories();
     }
   }
@@ -93,12 +94,13 @@ export default function HomeSection() {
       }),
     });
     markChanged();
-    notifyChange("home", "add", values.title);
+    notifyChange("home", "add", values.title, `Tool:slug:${slug}`);
     fetchCategories();
   }
 
   async function handleEditTool(values: Record<string, string>) {
     if (!editingTool) return;
+    const snapshot = { title: editingTool.tool.title, url: editingTool.tool.url, icon: editingTool.tool.icon, description: editingTool.tool.description };
     await fetch("/api/tools", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -108,7 +110,7 @@ export default function HomeSection() {
       }),
     });
     markChanged();
-    notifyChange("home", "edit", values.title);
+    notifyChange("home", "edit", values.title, `Tool:slug:${editingTool.tool.slug}`, snapshot);
     setEditingTool(null);
     fetchCategories();
   }
@@ -117,7 +119,7 @@ export default function HomeSection() {
     if (confirm(`Delete tool "${tool.title}"?`)) {
       await fetch(`/api/tools?slug=${tool.slug}`, { method: "DELETE" });
       markChanged();
-      notifyChange("home", "delete", tool.title);
+      notifyChange("home", "delete", tool.title, `Tool:slug:${tool.slug}`, tool);
       fetchCategories();
     }
   }

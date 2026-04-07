@@ -21,9 +21,10 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  sessions      Session[]
-  notifications Notification[]
-  viewerPerms   ViewerPermission[]
+  sessions       Session[]
+  notifications  Notification[]
+  viewerPerms    ViewerPermission[]
+  pendingChanges PendingChange[]
 
   @@map("users")
 }
@@ -342,4 +343,55 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@map("notifications")
+}
+
+// ─── Pending Changes (Editor Approval Workflow) ──────────────────────────────
+
+model PendingChange {
+  id         String              @id @default(cuid())
+  page       String
+  changeType String              @map("change_type") // "add" | "edit" | "delete"
+  itemName   String              @map("item_name")
+  status     PendingChangeStatus @default(pending)
+  /// JSON snapshot of the request payload so admin can review/revert
+  snapshot   Json?
+  /// The entity type and id affected (e.g. "ContentSection:slug:abc123")
+  entityRef  String?             @map("entity_ref")
+  /// Admin reason when declining
+  reason     String?
+
+  userId   String @map("user_id")
+  username String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  reviewedBy   String?  @map("reviewed_by")
+  reviewedAt   DateTime? @map("reviewed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("pending_changes")
+}
+
+enum PendingChangeStatus {
+  pending
+  approved
+  declined
+}
+
+// ─── Activity Log ────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  page       String
+  changeType String   @map("change_type") // "add" | "edit" | "delete"
+  itemName   String   @map("item_name")
+  username   String
+  userId     String   @map("user_id")
+  status     String   @default("applied") // "applied" | "pending" | "approved" | "declined"
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_logs")
 }

@@ -308,24 +308,27 @@ export default function TeamSection() {
   async function handleDeleteSpine(idx: number) {
     const m = spine[idx];
     await fetch(`/api/teams?id=${m.id}&type=spine`, { method: "DELETE" });
-    markChanged(); notifyChange("team", "delete", "spine member"); fetchAll();
+    markChanged(); notifyChange("team", "delete", m.name, `SpineMember:id:${m.id}`, m); fetchAll();
   }
   async function handleSpineSubmit(vals: Record<string, string>) {
     if (spineModal?.mode === "edit" && spineModal.idx != null) {
       const m = spine[spineModal.idx];
+      const snapshot = { name: m.name, role: m.role, img: m.img };
       await fetch("/api/teams", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "spine", id: m.id, name: vals.name, role: vals.role, img: vals.img }),
       });
+      markChanged(); notifyChange("team", "edit", vals.name, `SpineMember:id:${m.id}`, snapshot); setSpineModal(null); fetchAll();
     } else {
-      await fetch("/api/teams", {
+      const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "spine", name: vals.name, role: vals.role, img: vals.img, order: spine.length }),
       });
+      const created = await res.json().catch(() => null);
+      markChanged(); notifyChange("team", "add", vals.name, created?.id ? `SpineMember:id:${created.id}` : undefined); setSpineModal(null); fetchAll();
     }
-    markChanged(); notifyChange("team", spineModal?.mode === "edit" ? "edit" : "add", vals.name); setSpineModal(null); fetchAll();
   }
 
   // ── Team CRUD ──────────────────────────────────────────────────────────
@@ -336,24 +339,27 @@ export default function TeamSection() {
   async function handleDeleteTeam(idx: number) {
     const t = teams[idx];
     await fetch(`/api/teams?id=${t.dbId}&type=team`, { method: "DELETE" });
-    markChanged(); notifyChange("team", "delete", "team"); fetchAll();
+    markChanged(); notifyChange("team", "delete", t.label, `Team:id:${t.dbId}`, t); fetchAll();
   }
   async function handleTeamSubmit(vals: Record<string, string>) {
     if (teamModal?.mode === "edit" && teamModal.teamIdx != null) {
       const t = teams[teamModal.teamIdx];
+      const snapshot = { label: t.label };
       await fetch("/api/teams", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: t.dbId, label: vals.label }),
       });
+      markChanged(); notifyChange("team", "edit", vals.label, `Team:id:${t.dbId}`, snapshot); setTeamModal(null); fetchAll();
     } else {
-      await fetch("/api/teams", {
+      const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ seqId: Date.now(), label: vals.label }),
       });
+      const created = await res.json().catch(() => null);
+      markChanged(); notifyChange("team", "add", vals.label, created?.id ? `Team:id:${created.id}` : undefined); setTeamModal(null); fetchAll();
     }
-    markChanged(); notifyChange("team", teamModal?.mode === "edit" ? "edit" : "add", vals.label); setTeamModal(null); fetchAll();
   }
 
   // ── Member CRUD ────────────────────────────────────────────────────────
@@ -370,7 +376,7 @@ export default function TeamSection() {
     const memberAtIdx = role === "head" ? team.head : members?.[idx];
     if (!memberAtIdx?.dbId) return;
     await fetch(`/api/teams?id=${memberAtIdx.dbId}&type=member`, { method: "DELETE" });
-    markChanged(); notifyChange("team", "delete", "team member"); fetchAll();
+    markChanged(); notifyChange("team", "delete", memberAtIdx.name || "team member", `TeamMember:id:${memberAtIdx.dbId}`, memberAtIdx); fetchAll();
   }
   function handleAddMember(teamId: string, role: string) {
     setMemberModal({ mode: "add", teamId, role });
@@ -390,14 +396,17 @@ export default function TeamSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "member", id: memberAtIdx.dbId, name: vals.name, img: vals.img, role: dbRole }),
       });
+      markChanged(); notifyChange("team", "edit", vals.name, `TeamMember:id:${memberAtIdx.dbId}`, { name: memberAtIdx.name, img: memberAtIdx.img });
     } else {
-      await fetch("/api/teams", {
+      const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "member", teamId, name: vals.name, img: vals.img, role: dbRole, order: 0 }),
       });
+      const created = await res.json().catch(() => null);
+      markChanged(); notifyChange("team", "add", vals.name, created?.id ? `TeamMember:id:${created.id}` : undefined);
     }
-    markChanged(); notifyChange("team", mode === "edit" ? "edit" : "add", vals.name); setMemberModal(null); fetchAll();
+    setMemberModal(null); fetchAll();
   }
 
   return (

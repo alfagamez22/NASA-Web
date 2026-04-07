@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, Bell, Check, ArrowUpDown } from "lucide-react";
+import { X, Plus, Trash2, Edit2, ChevronDown, ChevronUp, Bell, Check, ArrowUpDown, ClipboardList, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 interface Notification {
@@ -12,6 +12,33 @@ interface Notification {
   username: string;
   userId: string;
   read: boolean;
+  createdAt: string;
+}
+
+interface PendingChange {
+  id: string;
+  page: string;
+  changeType: string;
+  itemName: string;
+  status: "pending" | "approved" | "declined";
+  entityRef: string | null;
+  snapshot: unknown;
+  reason: string | null;
+  userId: string;
+  username: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+interface ActivityLogEntry {
+  id: string;
+  page: string;
+  changeType: string;
+  itemName: string;
+  username: string;
+  userId: string;
+  status: string;
   createdAt: string;
 }
 
@@ -42,12 +69,16 @@ const ALL_PAGES = [
 
 export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPanelProps) {
   const { user, refreshUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<"account" | "users" | "notifications">("users");
+  const [activeTab, setActiveTab] = useState<"account" | "users" | "notifications" | "logs">("users");
   const [users, setUsersState] = useState<DBUser[]>([]);
   const [notifications, setNotificationsState] = useState<Notification[]>([]);
+  const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
   const [editingUser, setEditingUser] = useState<DBUser | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [permUserId, setPermUserId] = useState<string | null>(null);
+  const [declineId, setDeclineId] = useState<string | null>(null);
+  const [declineReason, setDeclineReason] = useState("");
 
   // Form state
   const [formUsername, setFormUsername] = useState("");
@@ -72,14 +103,19 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
   async function refreshList() {
     try {
       const res = await fetch("/api/users");
-      if (res.ok) {
-        const data = await res.json();
-        setUsersState(data);
-      }
+      if (res.ok) setUsersState(await res.json());
     } catch { /* ignore */ }
     try {
       const res = await fetch("/api/notifications");
       if (res.ok) setNotificationsState(await res.json());
+    } catch { /* ignore */ }
+    try {
+      const res = await fetch("/api/pending-changes?status=pending");
+      if (res.ok) setPendingChanges(await res.json());
+    } catch { /* ignore */ }
+    try {
+      const res = await fetch("/api/activity-log");
+      if (res.ok) setActivityLogs(await res.json());
     } catch { /* ignore */ }
   }
 
@@ -208,6 +244,33 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
 
   const nonAdminUsers = users.filter((u) => u.role !== "admin");
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const pendingCount = pendingChanges.length;
+
+  const pageLabel = (slug: string) => ALL_PAGES.find((p) => p.slug === slug)?.label || slug.toUpperCase();
+
+  async function handleApprove(id: string) {
+    try {
+      await fetch("/api/pending-changes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "approve" }),
+      });
+    } catch { /* ignore */ }
+    refreshList();
+  }
+
+  async function handleDecline(id: string, reason?: string) {
+    try {
+      await fetch("/api/pending-changes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "decline", reason: reason || undefined }),
+      });
+    } catch { /* ignore */ }
+    setDeclineId(null);
+    setDeclineReason("");
+    refreshList();
+  }
 
   return (
     <div className="fixed inset-0 z-[200] flex items-stretch">
@@ -231,7 +294,7 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
 
         {/* Tabs */}
         <div className="flex" style={{ borderBottom: "1px solid var(--border-color)" }}>
-          {(["account", "users", "notifications"] as const).map((tab) => (
+          {(["account", "users", "notifications", "logs"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -242,13 +305,11 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                 background: activeTab === tab ? "var(--bg-tertiary)" : "transparent",
               }}
             >
-              {tab === "notifications" ? (
-                <span className="flex items-center justify-center gap-1">
-                  {tab} {unreadCount > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
-                </span>
-              ) : (
-                tab
-              )}
+              <span className="flex items-center justify-center gap-1">
+                {tab}
+                {tab === "notifications" && unreadCount > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
+                {tab === "notifications" && pendingCount > 0 && <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{pendingCount}</span>}
+              </span>
             </button>
           ))}
         </div>
@@ -431,59 +492,194 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
 
           {/* ── Notifications Tab ─────────────────────────────────────── */}
           {activeTab === "notifications" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display text-xl uppercase" style={{ color: "var(--accent-color)" }}>
-                  NOTIFICATIONS
-                </h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => { await fetch('/api/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markAllRead: true }) }); refreshList(); }}
-                    className="nasa-btn text-[10px] flex items-center gap-1"
-                  >
-                    <Check size={12} /> MARK ALL READ
-                  </button>
-                  <button
-                    onClick={async () => { await fetch('/api/notifications', { method: 'DELETE' }); refreshList(); }}
-                    className="nasa-btn text-[10px] flex items-center gap-1"
-                  >
-                    <Trash2 size={12} /> CLEAR
-                  </button>
+            <div className="space-y-6">
+              {/* Pending Changes Section */}
+              {pendingCount > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-display text-xl uppercase flex items-center gap-2" style={{ color: "var(--accent-color)" }}>
+                    <Clock size={18} /> PENDING REQUESTS
+                    <span className="bg-amber-500/20 text-amber-400 text-xs font-mono px-2 py-0.5 rounded-full">{pendingCount}</span>
+                  </h3>
+                  <div className="space-y-2">
+                    {pendingChanges.map((pc) => (
+                      <div
+                        key={pc.id}
+                        className="p-3"
+                        style={{
+                          border: "1px solid rgba(245,158,11,0.4)",
+                          background: "rgba(245,158,11,0.05)",
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <span className="font-mono text-sm font-bold" style={{ color: "var(--accent-color)" }}>
+                              [{pc.changeType.toUpperCase()}] {pc.itemName}
+                            </span>
+                            <p className="font-mono text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+                              Page: {pageLabel(pc.page)} &bull; By: {pc.username}
+                            </p>
+                            <p className="font-mono text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                              {new Date(pc.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          {declineId === pc.id ? (
+                            <div className="flex flex-col gap-1">
+                              <input
+                                type="text"
+                                value={declineReason}
+                                onChange={(e) => setDeclineReason(e.target.value)}
+                                placeholder="Reason (optional)"
+                                className="p-1 font-mono text-xs bg-transparent outline-none w-40"
+                                style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                              />
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleDecline(pc.id, declineReason)}
+                                  className="flex-1 py-1 px-2 font-mono text-[10px] uppercase bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                                  style={{ border: "1px solid rgba(239,68,68,0.4)" }}
+                                >
+                                  CONFIRM
+                                </button>
+                                <button
+                                  onClick={() => { setDeclineId(null); setDeclineReason(""); }}
+                                  className="py-1 px-2 font-mono text-[10px] uppercase text-nasa-gray hover:text-white transition-colors"
+                                >
+                                  CANCEL
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => handleApprove(pc.id)}
+                                className="p-1.5 text-green-400 hover:bg-green-500/20 transition-colors rounded"
+                                title="Approve"
+                              >
+                                <CheckCircle size={18} />
+                              </button>
+                              <button
+                                onClick={() => setDeclineId(pc.id)}
+                                className="p-1.5 text-red-400 hover:bg-red-500/20 transition-colors rounded"
+                                title="Decline"
+                              >
+                                <XCircle size={18} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notifications Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-xl uppercase flex items-center gap-2" style={{ color: "var(--accent-color)" }}>
+                    <Bell size={18} /> NOTIFICATIONS
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => { await fetch('/api/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markAllRead: true }) }); refreshList(); }}
+                      className="nasa-btn text-[10px] flex items-center gap-1"
+                    >
+                      <Check size={12} /> MARK ALL READ
+                    </button>
+                    <button
+                      onClick={async () => { await fetch('/api/notifications', { method: 'DELETE' }); refreshList(); }}
+                      className="nasa-btn text-[10px] flex items-center gap-1"
+                    >
+                      <Trash2 size={12} /> CLEAR
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {notifications.length === 0 && pendingCount === 0 && (
+                    <p className="font-mono text-xs uppercase" style={{ color: "var(--text-secondary)" }}>
+                      No notifications.
+                    </p>
+                  )}
+                  {notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="p-3 cursor-pointer transition-colors"
+                      style={{
+                        border: "1px solid var(--border-color)",
+                        background: n.read ? "transparent" : "rgba(0,212,255,0.05)",
+                      }}
+                      onClick={async () => { await fetch('/api/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) }); refreshList(); }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="font-mono text-sm font-bold" style={{ color: n.read ? "var(--text-secondary)" : "var(--accent-color)" }}>
+                            [{n.changeType.toUpperCase()}] {n.itemName}
+                          </span>
+                          <p className="font-mono text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+                            Page: {pageLabel(n.page)} &bull; By: {n.username}
+                          </p>
+                        </div>
+                        {!n.read && <div className="w-2 h-2 rounded-full bg-cyan-400 mt-1 flex-shrink-0" />}
+                      </div>
+                      <p className="font-mono text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>
+                        {new Date(n.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
+            </div>
+          )}
 
+          {/* ── Activity Logs Tab ─────────────────────────────────────── */}
+          {activeTab === "logs" && (
+            <div className="space-y-4">
+              <h3 className="font-display text-xl uppercase flex items-center gap-2" style={{ color: "var(--accent-color)" }}>
+                <ClipboardList size={18} /> ACTIVITY LOG
+              </h3>
               <div className="space-y-2">
-                {notifications.length === 0 && (
+                {activityLogs.length === 0 && (
                   <p className="font-mono text-xs uppercase" style={{ color: "var(--text-secondary)" }}>
-                    No notifications.
+                    No activity yet.
                   </p>
                 )}
-                {notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className="p-3 cursor-pointer transition-colors"
-                    style={{
-                      border: "1px solid var(--border-color)",
-                      background: n.read ? "transparent" : "rgba(0,212,255,0.05)",
-                    }}
-                    onClick={async () => { await fetch('/api/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) }); refreshList(); }}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="font-mono text-sm font-bold" style={{ color: n.read ? "var(--text-secondary)" : "var(--accent-color)" }}>
-                          [{n.changeType.toUpperCase()}] {n.itemName}
+                {activityLogs.map((log) => {
+                  const statusColor =
+                    log.status === "approved" ? "text-green-400" :
+                    log.status === "declined" ? "text-red-400" :
+                    log.status === "applied" ? "text-cyan-400" :
+                    "text-amber-400";
+                  const statusBorder =
+                    log.status === "approved" ? "rgba(34,197,94,0.3)" :
+                    log.status === "declined" ? "rgba(239,68,68,0.3)" :
+                    log.status === "applied" ? "rgba(0,212,255,0.3)" :
+                    "rgba(245,158,11,0.3)";
+                  return (
+                    <div
+                      key={log.id}
+                      className="p-3"
+                      style={{ border: `1px solid ${statusBorder}` }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="font-mono text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                            [{log.changeType.toUpperCase()}] {log.itemName}
+                          </span>
+                          <p className="font-mono text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+                            Page: {pageLabel(log.page)} &bull; By: {log.username}
+                          </p>
+                        </div>
+                        <span className={`font-mono text-[10px] uppercase px-2 py-0.5 flex-shrink-0 ${statusColor}`} style={{ border: `1px solid ${statusBorder}` }}>
+                          {log.status}
                         </span>
-                        <p className="font-mono text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
-                          Page: {n.page} • By: {n.username}
-                        </p>
                       </div>
-                      {!n.read && <div className="w-2 h-2 rounded-full bg-cyan-400 mt-1 flex-shrink-0" />}
+                      <p className="font-mono text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>
+                        {new Date(log.createdAt).toLocaleString()}
+                      </p>
                     </div>
-                    <p className="font-mono text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>
-                      {new Date(n.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

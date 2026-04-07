@@ -95,12 +95,13 @@ export default function KnowMoreSection() {
       }),
     });
     markChanged();
-    notifyChange("know-more", "add", values.title);
+    notifyChange("know-more", "add", values.title, `ContentSection:slug:${slug}`);
     fetchSections();
   }
 
   async function handleEdit(values: Record<string, string>) {
     if (!editingSection) return;
+    const snapshot = { title: editingSection.title, description: editingSection.description, content: editingSection.content, author: editingSection.author, authorUrl: editingSection.authorUrl };
     let parsedLinks: { label: string; url: string }[] = [];
     try { parsedLinks = values.links ? JSON.parse(values.links) : []; } catch { parsedLinks = []; }
     await fetch("/api/sections", {
@@ -117,7 +118,7 @@ export default function KnowMoreSection() {
       }),
     });
     markChanged();
-    notifyChange("know-more", "edit", values.title);
+    notifyChange("know-more", "edit", values.title, `ContentSection:slug:${editingSection.slug}`, snapshot);
     setEditingSection(null);
     fetchSections();
   }
@@ -126,7 +127,7 @@ export default function KnowMoreSection() {
     if (confirm(`Delete "${section.title}"?`)) {
       await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
       markChanged();
-      notifyChange("know-more", "delete", section.title);
+      notifyChange("know-more", "delete", section.title, `ContentSection:slug:${section.slug}`, section);
       fetchSections();
     }
   }

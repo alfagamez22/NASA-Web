@@ -80,12 +80,13 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
       }),
     });
     markChanged();
-    notifyChange(`report-${moduleSlug}`, "add", values.title);
+    notifyChange(`report-${moduleSlug}`, "add", values.title, `ContentSection:slug:${slug}`);
     fetchRegions();
   }
 
   async function handleEdit(values: Record<string, string>) {
     if (!editingSection) return;
+    const snapshot = { title: editingSection.title, description: editingSection.description };
     await fetch("/api/sections", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -97,7 +98,7 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
       }),
     });
     markChanged();
-    notifyChange(`report-${moduleSlug}`, "edit", values.title);
+    notifyChange(`report-${moduleSlug}`, "edit", values.title, `ContentSection:slug:${editingSection.slug}`, snapshot);
     setEditingSection(null);
     fetchRegions();
   }
@@ -106,7 +107,7 @@ export default function RegionalReportSection({ reportType, moduleSlug }: Region
     if (confirm(`Delete "${section.title}"?`)) {
       await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
       markChanged();
-      notifyChange(`report-${moduleSlug}`, "delete", section.title);
+      notifyChange(`report-${moduleSlug}`, "delete", section.title, `ContentSection:slug:${section.slug}`, section);
       fetchRegions();
     }
   }
