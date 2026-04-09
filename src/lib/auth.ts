@@ -84,12 +84,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
-        const u = user as Record<string, unknown>;
-        token.role = u.role as string;
-        token.username = user.email; // email holds username
-        token.userEmail = (u.userEmail as string) ?? null;
-        token.emailVerified = (u.emailVerified as boolean) ?? false;
-        token.passwordChangedAfterCreation = (u.passwordChangedAfterCreation as boolean) ?? false;
+        const authUser = user as typeof user & {
+          role?: string;
+          userEmail?: string | null;
+          emailVerified?: boolean;
+          passwordChangedAfterCreation?: boolean;
+        };
+        token.role = authUser.role;
+        token.username = user.email ?? undefined; // email holds username
+        token.userEmail = authUser.userEmail ?? null;
+        token.emailVerified = authUser.emailVerified ?? false;
+        token.passwordChangedAfterCreation = authUser.passwordChangedAfterCreation ?? false;
       }
       // Refresh user data from DB on session update
       if (trigger === "update" && token.sub) {
@@ -106,12 +111,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub!;
-        (session.user as Record<string, unknown>).role = token.role;
-        (session.user as Record<string, unknown>).username = token.username;
-        (session.user as Record<string, unknown>).userEmail = token.userEmail ?? null;
-        (session.user as Record<string, unknown>).emailVerified = token.emailVerified ?? false;
-        (session.user as Record<string, unknown>).passwordChangedAfterCreation = token.passwordChangedAfterCreation ?? false;
+        const appToken = token as typeof token & {
+          role?: string;
+          username?: string;
+          userEmail?: string | null;
+          emailVerified?: boolean;
+          passwordChangedAfterCreation?: boolean;
+        };
+        const sessionUser = session.user as unknown as {
+          id: string;
+          role: string;
+          username: string;
+          userEmail: string | null;
+          emailVerified: boolean;
+          passwordChangedAfterCreation: boolean;
+          email?: string | null;
+        };
+        if (token.sub) sessionUser.id = token.sub;
+        sessionUser.role = appToken.role ?? "viewer";
+        sessionUser.username = appToken.username ?? sessionUser.email ?? "";
+        sessionUser.userEmail = appToken.userEmail ?? null;
+        sessionUser.emailVerified = appToken.emailVerified ?? false;
+        sessionUser.passwordChangedAfterCreation = appToken.passwordChangedAfterCreation ?? false;
       }
       return session;
     },

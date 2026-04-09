@@ -9,7 +9,7 @@ declare module "next-auth" {
       userEmail: string | null;
       emailVerified: boolean;
       passwordChangedAfterCreation: boolean;
-    } & DefaultSession["user"];
+    } & Omit<NonNullable<DefaultSession["user"]>, "emailVerified">;
   }
 }
 
