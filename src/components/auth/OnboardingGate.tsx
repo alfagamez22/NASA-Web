@@ -113,7 +113,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold"
                 style={{
-                  background: step === s ? "var(--accent-color)" : s === "done" || (i < ["email", "otp", "password"].indexOf(step)) ? "rgba(0,212,255,0.2)" : "rgba(255,255,255,0.05)",
+                  background: step === s ? "var(--accent-color)" : (i < ["email", "otp", "password"].indexOf(step)) ? "rgba(0,212,255,0.2)" : "rgba(255,255,255,0.05)",
                   color: step === s ? "#000" : "var(--text-secondary)",
                   border: step === s ? "none" : "1px solid var(--border-color)",
                 }}
