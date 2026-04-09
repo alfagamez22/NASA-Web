@@ -4,6 +4,7 @@
  * Centralised helper for recording system activity log entries.
  */
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
 export type SystemAction =
   | "login"
@@ -37,7 +38,7 @@ export async function logActivity(params: LogParams) {
         actorId: params.actorId,
         actionType: params.actionType,
         targetId: params.targetId,
-        metadata: params.metadata ?? undefined,
+        metadata: params.metadata !== undefined ? (params.metadata as Prisma.InputJsonValue) : undefined,
         ipAddress: params.ipAddress,
         userAgent: params.userAgent,
         immutable: params.immutable ?? false,
