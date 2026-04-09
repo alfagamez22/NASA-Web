@@ -57,6 +57,17 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
     return () => clearTimeout(id);
   }, [resendTimer]);
 
+  // Safety: if step is "done" but session still shows onboarding required,
+  // retry the JWT refresh so we don't get stuck on the loading screen.
+  useEffect(() => {
+    if (step === "done" && requiresOnboarding) {
+      const id = setTimeout(() => {
+        update().then(() => refreshUser()).catch(() => {});
+      }, 800);
+      return () => clearTimeout(id);
+    }
+  }, [step, requiresOnboarding, update, refreshUser]);
+
   // OTP box handlers
   const handleOtpChange = useCallback((index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(-1);
@@ -92,7 +103,24 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
 
   const otpCode = otpDigits.join("");
 
-  if (!requiresOnboarding || step === "done") return <>{children}</>;
+  // Only render children once the session actually reflects completed onboarding.
+  // Don't short-circuit on step === "done" alone — the JWT cookie may still be stale,
+  // which causes the middleware to 403-block all content API calls.
+  if (!requiresOnboarding) return <>{children}</>;
+
+  // Step is "done" locally but JWT hasn't refreshed yet — show brief transition
+  if (step === "done") {
+    return (
+      <div
+        className="fixed inset-0 z-[350] flex items-center justify-center"
+        style={{ background: "radial-gradient(ellipse at center, #0a1428 0%, #050a15 70%, #020408 100%)" }}
+      >
+        <div className="animate-pulse font-display text-3xl tracking-tighter" style={{ color: "var(--accent-color)" }}>
+          NASA
+        </div>
+      </div>
+    );
+  }
 
   const sendOtp = async () => {
     setError("");
