@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { hasMinRole, outranks, type UserRole } from "@/lib/role-hierarchy";
+import type { Session } from "next-auth";
 
-type AuthResult = { error: NextResponse; session: null } | { error: null; session: NonNullable<Awaited<ReturnType<typeof auth>>> };
+type AuthResult = { error: NextResponse; session: null } | { error: null; session: Session };
 
 /** Helper to check if the user is authenticated and return the session */
 export async function requireAuth(): Promise<AuthResult> {
