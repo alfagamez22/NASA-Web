@@ -400,6 +400,15 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+// ─── Site-wide Config (Singleton) ────────────────────────────────────────────
+
+model SiteConfig {
+  id           String @id @default("singleton")
+  contactEmail String @default("gtnocradioaccess@globe.com.ph") @map("contact_email")
+
+  @@map("site_config")
+}
+
 // ─── Soft Deletes (Recycle Bin) ──────────────────────────────────────────────
 
 model SoftDelete {

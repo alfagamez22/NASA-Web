@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { TEAM_EMAIL } from "@/lib/constants";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
 import { useHighlight } from "@/lib/highlight-context";
@@ -280,11 +279,17 @@ function TeamColumn({ team, isEditMode, onEditMember, onDeleteMember, onAddMembe
 
 // ─── Main Export ─────────────────────────────────────────────────────────────
 
+const EMAIL_FIELDS: FormField[] = [
+  { key: "contactEmail", label: "Contact Email", required: true, placeholder: "e.g. team@example.com" },
+];
+
 export default function TeamSection() {
   const { isEditMode, markChanged, notifyChange } = useEditMode();
   const { isPending, getPendingAdds } = usePendingChanges();
   const [spine, setSpine] = useState<SpineMember[]>([]);
   const [teams, setTeams] = useState<TeamData[]>([]);
+  const [contactEmail, setContactEmail] = useState("gtnocradioaccess@globe.com.ph");
+  const [emailModal, setEmailModal] = useState(false);
 
   const fetchSpine = useCallback(async () => {
     try {
@@ -300,9 +305,38 @@ export default function TeamSection() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { fetchSpine(); fetchTeams(); }, [fetchSpine, fetchTeams]);
+  const fetchConfig = useCallback(async () => {
+    try {
+      const res = await fetch("/api/site-config");
+      if (res.ok) {
+        const data = await res.json();
+        setContactEmail(data.contactEmail);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchSpine(); fetchTeams(); fetchConfig(); }, [fetchSpine, fetchTeams, fetchConfig]);
 
   const fetchAll = useCallback(() => { fetchSpine(); fetchTeams(); }, [fetchSpine, fetchTeams]);
+
+  async function handleEmailSubmit(vals: Record<string, string>) {
+    const previous = { contactEmail };
+    const apiBody = { contactEmail: vals.contactEmail };
+    const applied = await notifyChange("team", "edit", "Contact Email", "SiteConfig:id:singleton", {
+      apiUrl: "/api/site-config", apiMethod: "PUT", apiBody, previous,
+    });
+    if (applied) {
+      await fetch("/api/site-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiBody),
+      });
+      setContactEmail(vals.contactEmail);
+      markChanged();
+      refreshHighlights();
+    }
+    setEmailModal(false);
+  }
 
   // ── Spine CRUD ─────────────────────────────────────────────────────────
   const [spineModal, setSpineModal] = useState<{ mode: "add" | "edit"; idx?: number; init?: Record<string, string> } | null>(null);
@@ -565,15 +599,24 @@ export default function TeamSection() {
 
       {/* ── Contact Footer ────────────────────────────────────────────────── */}
       <div
-        className="text-center p-8 mt-20"
+        className="text-center p-8 mt-20 relative"
         style={{
           border: "2px solid var(--border-color-strong)",
           background: "var(--bg-card)",
         }}
       >
         <p className="font-mono text-lg uppercase text-nasa-cyan">
-          Contact: {TEAM_EMAIL}
+          Contact: {contactEmail}
         </p>
+        {isEditMode && (
+          <button
+            title="Edit contact email"
+            onClick={() => setEmailModal(true)}
+            className="absolute top-3 right-3 p-1 bg-cyan-600/80 rounded hover:bg-cyan-500 transition"
+          >
+            <Edit2 size={14} />
+          </button>
+        )}
       </div>
 
       {/* Modals */}
@@ -588,6 +631,10 @@ export default function TeamSection() {
       <ItemFormModal isOpen={!!memberModal} onClose={() => setMemberModal(null)}
         title={memberModal?.mode === "edit" ? "Edit Member" : "Add Member"}
         fields={MEMBER_FIELDS} initialValues={memberModal?.init ?? {}} onSubmit={handleMemberSubmit}
+      />
+      <ItemFormModal isOpen={emailModal} onClose={() => setEmailModal(false)}
+        title="Edit Contact Email"
+        fields={EMAIL_FIELDS} initialValues={{ contactEmail }} onSubmit={handleEmailSubmit}
       />
     </motion.div>
   );
