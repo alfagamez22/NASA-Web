@@ -9,6 +9,7 @@ import { usePendingChanges } from "@/lib/pending-context";
 import { useHighlight } from "@/lib/highlight-context";
 import ChangeHighlight from "@/components/ui/ChangeHighlight";
 import ItemFormModal, { type FormField } from "@/components/edit/ItemFormModal";
+import type { ContentSection } from "@/lib/types";
 
 interface TeamDriveItem { id: string; categoryId: string; label: string; url: string; urlType: string; order: number }
 interface TeamDriveCategory { id: string; title: string; order: number; items: TeamDriveItem[] }
@@ -21,6 +22,28 @@ const ITEM_FIELDS: FormField[] = [
   { key: "label", label: "Label", required: true },
   { key: "url", label: "URL", type: "url", required: true },
   { key: "urlType", label: "URL Type", type: "select", options: [{ value: "url", label: "URL" }, { value: "gurl", label: "Google URL" }, { value: "yurl", label: "YouTube URL" }] },
+];
+
+const TD_SECTION_FIELDS: FormField[] = [
+  { key: "title", label: "Section Heading", required: true, placeholder: "e.g. CONFIGURATION PPM" },
+  { key: "description", label: "Description", type: "textarea", placeholder: "Optional description" },
+  { key: "content", label: "Content", type: "textarea", placeholder: "Rich text content (HTML allowed)" },
+  { key: "mediaType", label: "Embed Type", type: "select", options: [
+    { value: "iframe", label: "iFrame / Google Drive embed" },
+    { value: "google-slides", label: "Google Slides" },
+    { value: "youtube", label: "YouTube" },
+    { value: "image", label: "Image (upload or URL)" },
+  ]},
+  {
+    key: "mediaUrl",
+    label: "Media URL / Image",
+    type: "url",
+    placeholder: "Paste embed URL here",
+    conditionalImage: { watchKey: "mediaType", whenValue: "image" },
+  },
+  { key: "links", label: "External Links", type: "links" },
+  { key: "buttonLabel", label: "Button Label", placeholder: "e.g. OPEN DOCUMENT" },
+  { key: "buttonUrl", label: "Button URL", type: "url", placeholder: "https://..." },
 ];
 
 const DRIVE_IFRAME_URL = "https://drive.google.com/...";
@@ -59,6 +82,8 @@ export default function TeamDriveSection() {
   const { isPending, getPendingAdds } = usePendingChanges();
   const { refresh: refreshHighlights } = useHighlight();
   const [drive, setDrive] = useState<TeamDriveCategory[]>([]);
+  const [embedSections, setEmbedSections] = useState<ContentSection[]>([]);
+  const [embedModal, setEmbedModal] = useState<{ mode: "add" | "edit"; section?: ContentSection; init?: Record<string, string> } | null>(null);
 
   // Editable site config fields
   const [cfg, setCfg] = useState<TDSiteConfig>(TD_DEFAULTS);
@@ -112,6 +137,14 @@ export default function TeamDriveSection() {
   }, []);
 
   useEffect(() => { fetchDrive(); }, [fetchDrive]);
+
+  const fetchEmbedSections = useCallback(async () => {
+    try {
+      const res = await fetch("/api/sections?parent=team-drive");
+      if (res.ok) setEmbedSections(await res.json());
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => { fetchEmbedSections(); }, [fetchEmbedSections]);
 
   // ── Category CRUD ──────────────────────────────────────────────────────
   const [catModal, setCatModal] = useState<{ mode: "add" | "edit"; idx?: number; init?: Record<string, string> } | null>(null);
@@ -224,6 +257,141 @@ export default function TeamDriveSection() {
     }
     setItemModal(null);
   }
+
+  // ── Embed Section helpers ──────────────────────────────────────────────
+  function tdSectionToFormValues(s: ContentSection): Record<string, string> {
+    const media = s.media?.[0];
+    return {
+      title: s.title,
+      description: s.description || "",
+      content: s.content || "",
+      mediaType: media?.type || "",
+      mediaUrl: media?.gurl || media?.yurl || media?.url || "",
+      links: s.links?.length ? JSON.stringify(s.links.map((l) => ({ label: l.label, url: l.url }))) : "[]",
+      buttonLabel: s.buttonLabel || "",
+      buttonUrl: s.buttonUrl || "",
+    };
+  }
+
+  function buildTDMedia(values: Record<string, string>) {
+    if (!values.mediaType || !values.mediaUrl) return undefined;
+    return [{
+      type: values.mediaType,
+      ...(values.mediaType === "google-slides" ? { gurl: values.mediaUrl } :
+          values.mediaType === "youtube" ? { yurl: values.mediaUrl } :
+          { url: values.mediaUrl }),
+    }];
+  }
+
+  async function handleAddEmbedSection(values: Record<string, string>) {
+    const slug = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    let parsedLinks: { label: string; url: string }[] = [];
+    try { parsedLinks = values.links ? JSON.parse(values.links) : []; } catch { parsedLinks = []; }
+    const apiBody = {
+      slug, title: values.title, parentSlug: "team-drive", order: embedSections.length,
+      description: values.description || undefined, content: values.content || undefined,
+      media: buildTDMedia(values),
+      links: parsedLinks.filter((l) => l.label && l.url),
+      buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
+    };
+    const applied = await notifyChange("team-drive", "add", values.title, `ContentSection:slug:${slug}`, {
+      apiUrl: "/api/sections", apiMethod: "POST", apiBody,
+    });
+    if (applied) {
+      await fetch("/api/sections", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) });
+      markChanged();
+      fetchEmbedSections();
+      refreshHighlights();
+    }
+  }
+
+  async function handleEditEmbedSection(values: Record<string, string>, section: ContentSection) {
+    let parsedLinks: { label: string; url: string }[] = [];
+    try { parsedLinks = values.links ? JSON.parse(values.links) : []; } catch { parsedLinks = []; }
+    const apiBody = {
+      slug: section.slug, title: values.title,
+      description: values.description || undefined, content: values.content || undefined,
+      media: buildTDMedia(values),
+      links: parsedLinks.filter((l) => l.label && l.url),
+      buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
+    };
+    const applied = await notifyChange("team-drive", "edit", values.title, `ContentSection:slug:${section.slug}`, {
+      apiUrl: "/api/sections", apiMethod: "PUT", apiBody, previous: { title: section.title, description: section.description },
+    });
+    if (applied) {
+      await fetch("/api/sections", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) });
+      markChanged();
+      fetchEmbedSections();
+      refreshHighlights();
+    }
+    setEmbedModal(null);
+  }
+
+  async function handleDeleteEmbedSection(section: ContentSection) {
+    if (confirm(`Delete "${section.title}"?`)) {
+      const applied = await notifyChange("team-drive", "delete", section.title, `ContentSection:slug:${section.slug}`, {
+        apiUrl: `/api/sections?slug=${section.slug}`, apiMethod: "DELETE", previous: section,
+      });
+      if (applied) {
+        await fetch(`/api/sections?slug=${section.slug}`, { method: "DELETE" });
+        markChanged();
+        fetchEmbedSections();
+        refreshHighlights();
+      }
+    }
+  }
+
+  // ── Embed Section Block ────────────────────────────────────────────────
+  const EmbedSectionBlock = ({ section }: { section: ContentSection }) => {
+    const media = section.media?.[0];
+    const embedUrl = media?.gurl || media?.yurl || media?.url || "";
+    const isImage = media?.type === "image";
+    return (
+      <ChangeHighlight entityRef={`ContentSection:slug:${section.slug}`}>
+        <div className="flex flex-col items-center justify-center w-full pt-16 relative z-10 space-y-8 pb-8 border-b-[2px]" style={{ borderColor: "var(--border-color)" }}>
+          <div className="flex items-center gap-3">
+            <h3 className="font-display text-4xl md:text-5xl uppercase tracking-widest text-nasa-light-cyan" style={{ textShadow: "0 0 10px var(--glow-color)" }}>
+              {section.title}
+            </h3>
+            {isEditMode && (
+              <div className="flex gap-1">
+                <button onClick={() => setEmbedModal({ mode: "edit", section, init: tdSectionToFormValues(section) })} className="p-1 bg-cyan-600/80 rounded hover:bg-cyan-500" title="Edit"><Edit2 size={14} /></button>
+                <button onClick={() => handleDeleteEmbedSection(section)} className="p-1 bg-red-600/80 rounded hover:bg-red-500" title="Delete"><Trash2 size={14} /></button>
+              </div>
+            )}
+          </div>
+          {section.description && (
+            <p className="font-mono text-nasa-gray text-sm max-w-2xl text-center">{section.description}</p>
+          )}
+          {section.content && (
+            <div className="font-mono text-nasa-gray text-sm max-w-2xl text-center" dangerouslySetInnerHTML={{ __html: section.content }} />
+          )}
+          {media && embedUrl && (
+            <div className="w-full max-w-3xl overflow-hidden rounded-md border-4 relative" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--bg-tertiary)" }}>
+              {isImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={embedUrl} alt={section.title} className="w-full h-auto object-contain max-h-[600px]" />
+              ) : (
+                <div className="w-full aspect-video relative">
+                  <iframe src={embedUrl} className="w-full h-full border-0 absolute inset-0" allow="autoplay; fullscreen" allowFullScreen />
+                </div>
+              )}
+            </div>
+          )}
+          {(section.links?.length || (section.buttonLabel && section.buttonUrl)) && (
+            <div className="flex flex-wrap gap-3 justify-center">
+              {section.links?.map((link, i) => (
+                <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="nasa-btn text-xs">{link.label}</a>
+              ))}
+              {section.buttonLabel && section.buttonUrl && (
+                <a href={section.buttonUrl} target="_blank" rel="noopener noreferrer" className="nasa-btn text-xs">{section.buttonLabel}</a>
+              )}
+            </div>
+          )}
+        </div>
+      </ChangeHighlight>
+    );
+  };
 
   const CategoryRow = ({ cat, catIdx }: { cat: TeamDriveCategory; catIdx: number }) => {
     const entityRef = `TeamDriveCategory:id:${cat.id}`;
@@ -448,6 +616,19 @@ export default function TeamDriveSection() {
           </div>
         </div>
 
+        {/* Dynamic Embed Sections (team-drive) */}
+        {embedSections.map((section) => (
+          <EmbedSectionBlock key={section.slug} section={section} />
+        ))}
+        {isEditMode && (
+          <button
+            onClick={() => setEmbedModal({ mode: "add" })}
+            className="nasa-btn text-sm flex items-center gap-2 mx-auto"
+          >
+            <Plus size={16} /> ADD EMBED SECTION
+          </button>
+        )}
+
         {/* Footer Area with dynamic QR */}
         <div className="w-full max-w-5xl mx-auto border-t-[2px] pt-16 flex flex-col md:flex-row items-center justify-center md:justify-between gap-8 relative z-10 p-8 rounded-xl backdrop-blur-md" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--bg-tertiary)" }}>
           <div className="text-left space-y-4">
@@ -540,6 +721,21 @@ export default function TeamDriveSection() {
       <ItemFormModal isOpen={!!itemModal} onClose={() => setItemModal(null)}
         title={itemModal?.mode === "edit" ? "Edit Item" : "Add Item"}
         fields={ITEM_FIELDS} initialValues={itemModal?.init ?? {}} onSubmit={handleItemSubmit}
+      />
+      <ItemFormModal
+        isOpen={!!embedModal}
+        onClose={() => setEmbedModal(null)}
+        title={embedModal?.mode === "edit" ? "Edit Embed Section" : "Add Embed Section"}
+        fields={TD_SECTION_FIELDS}
+        initialValues={embedModal?.init ?? {}}
+        onSubmit={(values) => {
+          if (embedModal?.mode === "edit" && embedModal.section) {
+            handleEditEmbedSection(values, embedModal.section);
+          } else {
+            handleAddEmbedSection(values);
+            setEmbedModal(null);
+          }
+        }}
       />
     </motion.div>
   );
