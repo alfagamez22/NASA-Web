@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Check, X } from "lucide-react";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
 import { useHighlight } from "@/lib/highlight-context";
@@ -43,6 +43,23 @@ export default function KnowMoreSection() {
   const { isRecentlyChanged, refresh: refreshHighlights } = useHighlight();
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Editable heading
+  const [heading, setHeading] = useState("KNOW MORE ABOUT...");
+  const [editingHeading, setEditingHeading] = useState(false);
+  const [headingDraft, setHeadingDraft] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/site-config");
+        if (res.ok) {
+          const cfg = await res.json();
+          if (cfg.knowMoreHeading) setHeading(cfg.knowMoreHeading);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
 
   const fetchSections = useCallback(async () => {
     try {
@@ -161,16 +178,53 @@ export default function KnowMoreSection() {
       className="p-8 md:p-16 space-y-12"
     >
       <div className="flex items-center justify-between">
-        <h2
-          className="font-display text-7xl uppercase tracking-tighter pb-4"
-          style={{
-            borderBottom: "4px solid var(--border-color-strong)",
-            textShadow: "0 0 10px var(--glow-color)",
-            color: "var(--accent-color)",
-          }}
-        >
-          KNOW MORE ABOUT...
-        </h2>
+        <div className="relative group/heading">
+          {editingHeading ? (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const trimmed = headingDraft.trim();
+                if (trimmed) {
+                  setHeading(trimmed);
+                  try { await fetch("/api/site-config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ knowMoreHeading: trimmed }) }); } catch { /* ignore */ }
+                }
+                setEditingHeading(false);
+              }}
+              className="flex items-center gap-2"
+            >
+              <input
+                type="text"
+                value={headingDraft}
+                onChange={(e) => setHeadingDraft(e.target.value)}
+                className="font-display text-7xl uppercase tracking-tighter bg-transparent outline-none"
+                style={{ color: "var(--accent-color)", borderBottom: "2px solid var(--accent-color)" }}
+                autoFocus
+              />
+              <button type="submit" className="text-green-400 hover:text-green-300"><Check size={20} /></button>
+              <button type="button" onClick={() => setEditingHeading(false)} className="text-red-400 hover:text-red-300"><X size={20} /></button>
+            </form>
+          ) : (
+            <h2
+              className="font-display text-7xl uppercase tracking-tighter pb-4"
+              style={{
+                borderBottom: "4px solid var(--border-color-strong)",
+                textShadow: "0 0 10px var(--glow-color)",
+                color: "var(--accent-color)",
+              }}
+            >
+              {heading}
+            </h2>
+          )}
+          {isEditMode && !editingHeading && (
+            <button
+              onClick={() => { setHeadingDraft(heading); setEditingHeading(true); }}
+              className="absolute top-2 right-2 z-50 p-1 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover/heading:opacity-100 transition-opacity"
+              title="Edit Heading"
+            >
+              <Edit2 size={14} />
+            </button>
+          )}
+        </div>
         {isEditMode && (
           <button onClick={() => setShowModal(true)} className="nasa-btn text-xs flex items-center gap-1">
             <Plus size={14} /> ADD POST

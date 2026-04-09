@@ -21,7 +21,7 @@ export interface HighlightSettings {
 const DEFAULT_SETTINGS: HighlightSettings = {
   enabled: true,
   color: "#22c55e", // green-500
-  durationHours: 24,
+  durationHours: 4,
 };
 
 const SETTINGS_KEY = "nasa-highlight-settings";
@@ -39,6 +39,8 @@ interface HighlightContextType {
   updateSettings: (patch: Partial<HighlightSettings>) => void;
   /** Refresh recent changes from server */
   refresh: () => void;
+  /** Clear all highlights immediately */
+  clearAll: () => void;
 }
 
 const HighlightContext = createContext<HighlightContextType | undefined>(undefined);
@@ -110,8 +112,12 @@ export function HighlightProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const clearAll = useCallback(() => {
+    setRecentChanges([]);
+  }, []);
+
   return (
-    <HighlightContext.Provider value={{ recentChanges, isRecentlyChanged, getChangeInfo, settings, updateSettings, refresh }}>
+    <HighlightContext.Provider value={{ recentChanges, isRecentlyChanged, getChangeInfo, settings, updateSettings, refresh, clearAll }}>
       {children}
     </HighlightContext.Provider>
   );

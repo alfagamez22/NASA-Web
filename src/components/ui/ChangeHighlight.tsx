@@ -1,6 +1,7 @@
 "use client";
 
 import { useHighlight } from "@/lib/highlight-context";
+import { useAuth } from "@/lib/auth-context";
 
 interface ChangeHighlightProps {
   entityRef: string;
@@ -9,11 +10,17 @@ interface ChangeHighlightProps {
 }
 
 /**
- * Wraps content with a green highlight indicator when the entity was recently changed.
- * Shows a "Recently Updated" badge with timestamp.
+ * Wraps content with a highlight indicator when the entity was recently changed.
+ * Only visible to admins and editors — end users see no visual change.
  */
 export default function ChangeHighlight({ entityRef, children, className = "" }: ChangeHighlightProps) {
   const { isRecentlyChanged, getChangeInfo, settings } = useHighlight();
+  const { isAdmin, isEditor } = useAuth();
+
+  // End users (viewers) never see highlights
+  if (!isAdmin && !isEditor) {
+    return <div className={className}>{children}</div>;
+  }
 
   const isChanged = isRecentlyChanged(entityRef);
   const changeInfo = isChanged ? getChangeInfo(entityRef) : undefined;

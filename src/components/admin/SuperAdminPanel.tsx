@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Shield, Trash2, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface AuditLog {
   id: string;
@@ -31,6 +32,7 @@ interface SuperAdminPanelProps {
 }
 
 export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProps) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"audit" | "recycle" | "credentials">("audit");
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [softDeletes, setSoftDeletes] = useState<SoftDeleteRecord[]>([]);
@@ -177,14 +179,10 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
 
     try {
       setIsLoading(true);
-      // First lookup superadmin user ID from users list
-      const usersRes = await fetch("/api/users");
-      if (!usersRes.ok) { alert("Failed to fetch users"); return; }
-      const users = await usersRes.json();
-      const superadminUser = users.find((u: { role: string }) => u.role === "super_admin");
-      if (!superadminUser) { alert("Superadmin user not found"); return; }
+      // Use the logged-in super admin's own session ID
+      if (!user) { alert("Not logged in"); return; }
 
-      const body: Record<string, string> = { id: superadminUser.id };
+      const body: Record<string, string> = { id: user.id };
       if (newUsername.trim()) body.username = newUsername.trim();
       if (newPassword.trim()) body.password = newPassword.trim();
 

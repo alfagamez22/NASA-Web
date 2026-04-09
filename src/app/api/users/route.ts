@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   const users = await prisma.user.findMany({
+    where: { role: { not: "super_admin" } },
     select: { id: true, username: true, displayName: true, role: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });

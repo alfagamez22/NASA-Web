@@ -70,7 +70,7 @@ const ALL_PAGES = [
 
 export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPanelProps) {
   const { user, refreshUser } = useAuth();
-  const { settings: highlightSettings, updateSettings: updateHighlightSettings } = useHighlight();
+  const { settings: highlightSettings, updateSettings: updateHighlightSettings, clearAll: clearAllHighlights } = useHighlight();
   const [activeTab, setActiveTab] = useState<"account" | "users" | "notifications" | "logs" | "highlights">("users");
   const [users, setUsersState] = useState<DBUser[]>([]);
   const [notifications, setNotificationsState] = useState<Notification[]>([]);
@@ -736,6 +736,21 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                 Recently added or edited content is visually highlighted for editors and admins. Configure the appearance and duration below.
               </p>
 
+              {/* Clear All Highlights Button */}
+              <div className="flex items-center justify-between p-4" style={{ border: "1px solid var(--border-color)", background: "var(--bg-tertiary)" }}>
+                <div>
+                  <p className="font-mono text-sm font-bold" style={{ color: "var(--text-primary)" }}>CLEAR ALL HIGHLIGHTS</p>
+                  <p className="font-mono text-[10px]" style={{ color: "var(--text-secondary)" }}>Remove all active highlights immediately, even if duration has not expired</p>
+                </div>
+                <button
+                  onClick={clearAllHighlights}
+                  className="px-4 py-1.5 font-mono text-xs uppercase tracking-wider transition-all hover:bg-red-500/20"
+                  style={{ border: "1px solid rgba(239,68,68,0.5)", color: "#ef4444" }}
+                >
+                  CLEAR ALL
+                </button>
+              </div>
+
               {/* Enable / Disable Toggle */}
               <div className="flex items-center justify-between p-4" style={{ border: "1px solid var(--border-color)", background: "var(--bg-tertiary)" }}>
                 <div>
@@ -786,7 +801,7 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                 <p className="font-mono text-sm font-bold" style={{ color: "var(--text-primary)" }}>HIGHLIGHT DURATION</p>
                 <p className="font-mono text-[10px]" style={{ color: "var(--text-secondary)" }}>How long items remain highlighted after being changed</p>
                 <div className="flex items-center gap-3">
-                  {[6, 12, 24, 48, 72].map((hours) => (
+                  {[1, 2, 4, 8].map((hours) => (
                     <button
                       key={hours}
                       onClick={() => updateHighlightSettings({ durationHours: hours })}

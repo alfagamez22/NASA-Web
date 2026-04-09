@@ -29,6 +29,23 @@ export default function Header() {
   const [isEditorNotificationsOpen, setIsEditorNotificationsOpen] = useState(false);
   const [isSuperAdminOpen, setIsSuperAdminOpen] = useState(false);
 
+  // Editable header title from site config
+  const [headerTitle, setHeaderTitle] = useState("NASA");
+  const [editingHeaderTitle, setEditingHeaderTitle] = useState(false);
+  const [headerTitleDraft, setHeaderTitleDraft] = useState("NASA");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/site-config");
+        if (res.ok) {
+          const cfg = await res.json();
+          if (cfg.headerTitle) setHeaderTitle(cfg.headerTitle);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
   // Live nav data from DB
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -171,11 +188,48 @@ export default function Header() {
     <>
       <nav className="sticky top-0 bg-nasa-darker z-50 flex flex-wrap items-stretch" style={{ borderBottom: "2px solid var(--border-color-strong)", backgroundColor: "var(--bg-secondary)" }}>
         {/* Logo */}
-        <div className="p-4 flex items-center gap-3 bg-nasa-blue text-nasa-light-cyan z-50 overflow-visible" style={{ borderRight: "2px solid var(--border-color-strong)", background: "linear-gradient(135deg, var(--bg-tertiary), var(--bg-card))", color: "var(--accent-light)" }}>
+        <div className="p-4 flex items-center gap-3 bg-nasa-blue text-nasa-light-cyan z-50 overflow-visible relative group/logo" style={{ borderRight: "2px solid var(--border-color-strong)", background: "linear-gradient(135deg, var(--bg-tertiary), var(--bg-card))", color: "var(--accent-light)" }}>
           <div className="relative w-6 h-6 flex items-center justify-center shrink-0">
             <Image src="/broadcast.gif" alt="SCC RAN Logo" width={54} height={54} unoptimized className="absolute max-w-none object-contain" />
           </div>
-          <span className="font-display text-2xl tracking-tighter z-10">NASA</span>
+          {editingHeaderTitle ? (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const trimmed = headerTitleDraft.trim();
+                if (trimmed) {
+                  setHeaderTitle(trimmed);
+                  try { await fetch("/api/site-config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ headerTitle: trimmed }) }); } catch { /* ignore */ }
+                }
+                setEditingHeaderTitle(false);
+              }}
+              className="flex items-center gap-1"
+            >
+              <input
+                type="text"
+                value={headerTitleDraft}
+                onChange={(e) => setHeaderTitleDraft(e.target.value)}
+                className="font-display text-2xl tracking-tighter bg-transparent outline-none w-24"
+                style={{ color: "var(--accent-light)", borderBottom: "1px solid var(--accent-color)" }}
+                autoFocus
+              />
+              <button type="submit" className="text-green-400 hover:text-green-300"><Check size={14} /></button>
+              <button type="button" onClick={() => setEditingHeaderTitle(false)} className="text-red-400 hover:text-red-300"><X size={14} /></button>
+            </form>
+          ) : (
+            <>
+              <span className="font-display text-2xl tracking-tighter z-10">{headerTitle}</span>
+              {isEditMode && (
+                <button
+                  onClick={() => { setHeaderTitleDraft(headerTitle); setEditingHeaderTitle(true); }}
+                  className="absolute top-1 right-1 z-50 p-0.5 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover/logo:opacity-100 transition-opacity"
+                  title="Edit Title"
+                >
+                  <Edit2 size={10} />
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         {/* Nav Links */}

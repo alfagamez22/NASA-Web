@@ -103,14 +103,14 @@ function SpineCard({ name, role, img, isEditMode, onEdit, onDelete }: { name: st
 function TeamHeadCard({ name, img, isEditMode, onEdit, onDelete }: { name: string; img: string; isEditMode?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   return (
     <div
-      className="relative overflow-hidden rounded-xl w-full group"
+      className="relative overflow-hidden rounded-lg w-full max-w-[260px] mx-auto group"
       style={{
         border: "2px solid rgba(0,255,255,0.45)",
         boxShadow: "0 0 28px rgba(0,255,255,0.1)",
       }}
     >
       {isEditMode && onEdit && onDelete && <EditOverlay onEdit={onEdit} onDelete={onDelete} />}
-      <div className="h-72 overflow-hidden">
+      <div className="h-52 overflow-hidden">
         <img
           src={img}
           alt={name}

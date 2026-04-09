@@ -403,8 +403,18 @@ model ActivityLog {
 // ─── Site-wide Config (Singleton) ────────────────────────────────────────────
 
 model SiteConfig {
-  id           String @id @default("singleton")
-  contactEmail String @default("gtnocradioaccess@globe.com.ph") @map("contact_email")
+  id             String @id @default("singleton")
+  contactEmail   String @default("gtnocradioaccess@globe.com.ph") @map("contact_email")
+  headerTitle    String @default("NASA") @map("header_title")
+  headerSubtitle String @default("") @map("header_subtitle")
+  footerTitle    String @default("NASA") @map("footer_title")
+  footerSubtitle String @default("NETWORK OPERATIONS & ASSURANCE CENTER") @map("footer_subtitle")
+  footerAbout    String @default("ABOUT") @map("footer_about")
+  footerSubmit   String @default("SUBMIT TOOL") @map("footer_submit")
+  footerPrivacy  String @default("PRIVACY") @map("footer_privacy")
+  footerTerms    String @default("TERMS") @map("footer_terms")
+  footerFeedback String @default("We would love to hear your thoughts or feedback on how we can improve your experience with VORTEX.") @map("footer_feedback")
+  knowMoreHeading String @default("KNOW MORE ABOUT...") @map("know_more_heading")
 
   @@map("site_config")
 }
