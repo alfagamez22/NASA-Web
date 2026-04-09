@@ -190,15 +190,16 @@ model SlideColumn {
 // ─── Modules (Top-level Navigation Entities) ─────────────────────────────────
 
 model Module {
-  id       String @id @default(cuid())
-  slug     String @unique
+  id       String  @id @default(cuid())
+  slug     String  @unique
   title    String
   href     String
   display  String
-  order    Int    @default(0)
+  order    Int     @default(0)
+  format   String? @map("format") // "A" | "B" | "C" | "D" | "E" | "F"
 
   children String[] // Slugs of child categories/sections
-  subNav   Json?    @map("sub_nav") // [{ display, href }]
+  subNav   Json?    @map("sub_nav") // [{ display, href, format }]
 
   @@map("modules")
 }

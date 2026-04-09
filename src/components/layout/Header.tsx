@@ -16,7 +16,7 @@ import SuperAdminPanel from "@/components/admin/SuperAdminPanel";
 import { usePendingChanges } from "@/lib/pending-context";
 
 interface SubNavItem { display: string; href: string; format?: string }
-interface ModuleData { id: string; slug: string; display: string; href: string; subNav?: SubNavItem[] | null }
+interface ModuleData { id: string; slug: string; display: string; href: string; format?: string | null; subNav?: SubNavItem[] | null }
 
 export default function Header() {
   const pathname = usePathname() ?? "";
@@ -142,7 +142,7 @@ export default function Header() {
       await fetch("/api/modules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ display: formDisplay.trim() }),
+        body: JSON.stringify({ display: formDisplay.trim(), format: formFormat }),
       });
     } catch { /* ignore */ }
     setRefreshKey((k) => k + 1);
@@ -578,8 +578,8 @@ export default function Header() {
                 />
               </div>
 
-              {/* Format selector — for sub-items only */}
-              {(editModal.mode === "add-sub" || editModal.mode === "edit-sub") && (
+              {/* Format selector — for new tabs and sub-items */}
+              {(editModal.mode === "add-module" || editModal.mode === "add-sub" || editModal.mode === "edit-sub") && (
                 <div className="space-y-2">
                   <label className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
                     Page Format

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { display } = body as { display: string };
+  const { display, format } = body as { display: string; format?: string };
 
   if (!display?.trim()) return NextResponse.json({ error: "display name required" }, { status: 400 });
 
@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       href,
       display: display.trim().toUpperCase(),
       order: nextOrder,
+      format: format || "A",
       children: [],
       subNav: [],
     },
@@ -64,13 +65,14 @@ export async function PUT(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { id, display, subNav } = body as { id: string; display?: string; subNav?: { display: string; href: string; format?: string }[] };
+  const { id, display, subNav, format } = body as { id: string; display?: string; subNav?: { display: string; href: string; format?: string }[]; format?: string };
 
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
   const data: Record<string, unknown> = {};
   if (display !== undefined) data.display = display;
   if (subNav !== undefined) data.subNav = subNav;
+  if (format !== undefined) data.format = format;
 
   const updated = await prisma.module.update({
     where: { id },

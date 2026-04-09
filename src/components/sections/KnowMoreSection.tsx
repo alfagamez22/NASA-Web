@@ -37,7 +37,14 @@ const SECTION_FIELDS: FormField[] = [
   { key: "buttonUrl", label: "Button URL", type: "url", placeholder: "https://..." },
 ];
 
-export default function KnowMoreSection() {
+interface KnowMoreSectionProps {
+  parentSlug?: string;
+  pageTitle?: string;
+}
+
+export default function KnowMoreSection({ parentSlug: propSlug, pageTitle }: KnowMoreSectionProps = {}) {
+  const sectionSlug = propSlug || "know-more";
+  const isDefault = sectionSlug === "know-more";
   const { isEditMode, markChanged, notifyChange } = useEditMode();
   const { isPending, getPendingAdds } = usePendingChanges();
   const { isRecentlyChanged, refresh: refreshHighlights } = useHighlight();
@@ -45,11 +52,12 @@ export default function KnowMoreSection() {
   const [loading, setLoading] = useState(true);
 
   // Editable heading
-  const [heading, setHeading] = useState("KNOW MORE ABOUT...");
+  const [heading, setHeading] = useState(pageTitle || "KNOW MORE ABOUT...");
   const [editingHeading, setEditingHeading] = useState(false);
   const [headingDraft, setHeadingDraft] = useState("");
 
   useEffect(() => {
+    if (!isDefault) return; // Dynamic pages use pageTitle prop
     (async () => {
       try {
         const res = await fetch("/api/site-config");
@@ -59,15 +67,15 @@ export default function KnowMoreSection() {
         }
       } catch { /* ignore */ }
     })();
-  }, []);
+  }, [isDefault]);
 
   const fetchSections = useCallback(async () => {
     try {
-      const res = await fetch("/api/sections?parent=know-more");
+      const res = await fetch(`/api/sections?parent=${sectionSlug}`);
       if (res.ok) setSections(await res.json());
     } catch { /* ignore */ }
     setLoading(false);
-  }, []);
+  }, [sectionSlug]);
 
   useEffect(() => { fetchSections(); }, [fetchSections]);
 
@@ -105,14 +113,14 @@ export default function KnowMoreSection() {
     let parsedLinks: { label: string; url: string }[] = [];
     try { parsedLinks = values.links ? JSON.parse(values.links) : []; } catch { parsedLinks = []; }
     const apiBody = {
-      slug, title: values.title, parentSlug: "know-more", order: sections.length,
+      slug, title: values.title, parentSlug: sectionSlug, order: sections.length,
       author: values.author || undefined, authorUrl: values.authorUrl || undefined,
       description: values.description || undefined, content: values.content || undefined,
       media: buildMedia(values),
       links: parsedLinks.filter((l) => l.label && l.url),
       buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
     };
-    const applied = await notifyChange("know-more", "add", values.title, `ContentSection:slug:${slug}`, {
+    const applied = await notifyChange(sectionSlug, "add", values.title, `ContentSection:slug:${slug}`, {
       apiUrl: "/api/sections", apiMethod: "POST", apiBody,
     });
     if (applied) {
@@ -141,7 +149,7 @@ export default function KnowMoreSection() {
       links: parsedLinks.filter((l) => l.label && l.url),
       buttonLabel: values.buttonLabel || undefined, buttonUrl: values.buttonUrl || undefined,
     };
-    const applied = await notifyChange("know-more", "edit", values.title, `ContentSection:slug:${editingSection.slug}`, {
+    const applied = await notifyChange(sectionSlug, "edit", values.title, `ContentSection:slug:${editingSection.slug}`, {
       apiUrl: "/api/sections", apiMethod: "PUT", apiBody, previous,
     });
     if (applied) {
@@ -159,7 +167,7 @@ export default function KnowMoreSection() {
 
   async function handleDelete(section: ContentSection) {
     if (confirm(`Delete "${section.title}"?`)) {
-      const applied = await notifyChange("know-more", "delete", section.title, `ContentSection:slug:${section.slug}`, {
+      const applied = await notifyChange(sectionSlug, "delete", section.title, `ContentSection:slug:${section.slug}`, {
         apiUrl: `/api/sections?slug=${section.slug}`, apiMethod: "DELETE", previous: section,
       });
       if (applied) {
@@ -215,7 +223,7 @@ export default function KnowMoreSection() {
               {heading}
             </h2>
           )}
-          {isEditMode && !editingHeading && (
+          {isEditMode && isDefault && !editingHeading && (
             <button
               onClick={() => { setHeadingDraft(heading); setEditingHeading(true); }}
               className="absolute top-2 right-2 z-50 p-1 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover/heading:opacity-100 transition-opacity"
@@ -254,7 +262,7 @@ export default function KnowMoreSection() {
         );
         })}
         {/* Pending add ghost cards */}
-        {getPendingAdds("know-more").map((p) => (
+        {getPendingAdds(sectionSlug).map((p) => (
           <div key={p.id} className="relative pending-add-highlight nasa-card opacity-70" style={{ minHeight: 120, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
             <span className="pending-add-badge">PENDING</span>
             <p className="font-mono text-sm text-green-400 uppercase tracking-wider">{p.itemName}</p>
