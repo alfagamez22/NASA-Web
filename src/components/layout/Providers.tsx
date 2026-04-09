@@ -11,13 +11,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <AuthProvider>
-        <EditModeProvider>
-          <PendingChangesProvider>
-            <HighlightProvider>
-              <AuthGate>{children}</AuthGate>
-            </HighlightProvider>
-          </PendingChangesProvider>
-        </EditModeProvider>
+        <AuthGate>
+          <EditModeProvider>
+            <PendingChangesProvider>
+              <HighlightProvider>
+                {children}
+              </HighlightProvider>
+            </PendingChangesProvider>
+          </EditModeProvider>
+        </AuthGate>
       </AuthProvider>
     </SessionProvider>
   );
