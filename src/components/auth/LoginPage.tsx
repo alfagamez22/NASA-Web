@@ -3,19 +3,22 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    const err = await login(username, password);
+    const err = await login(username, password, rememberMe);
     if (err) {
       setError(err);
       setIsLoading(false);
@@ -127,6 +130,28 @@ export default function LoginPage() {
               />
             </div>
 
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="accent-[var(--accent-color)]"
+                />
+                <span className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Remember me
+                </span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="font-mono text-xs hover:underline"
+                style={{ color: "var(--accent-color)" }}
+              >
+                Forgot password?
+              </button>
+            </div>
+
             {error && (
               <p className="font-mono text-xs text-red-400 bg-red-400/10 p-2 border border-red-400/20">
                 {error}
@@ -147,6 +172,10 @@ export default function LoginPage() {
           Confidential system — Unauthorized access is prohibited
         </p>
       </div>
+
+      {showForgotPassword && (
+        <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
+      )}
     </div>
   );
 }

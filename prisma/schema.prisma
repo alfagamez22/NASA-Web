@@ -21,10 +21,45 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  sessions       Session[]
-  notifications  Notification[]
-  viewerPerms    ViewerPermission[]
-  pendingChanges PendingChange[]
+  // ── Email & verification (F4, F5, F6) ──
+  email                        String?  @unique @db.VarChar(320)
+  emailVerified                Boolean  @default(false) @map("email_verified")
+  passwordChangedAfterCreation Boolean  @default(false) @map("password_changed_after_creation")
+  createdBy                    String?  @map("created_by")
+
+  // ── Account permissions (F2, F3) ──
+  accountPermissions Json? @map("account_permissions") // JSONB permission matrix
+  navTabOrder        Json? @map("nav_tab_order")        // JSONB array of tab_ids (F1)
+
+  // ── Suspension (F13) ──
+  suspended              Boolean   @default(false)
+  suspendedAt            DateTime? @map("suspended_at")
+  suspendedReason        String?   @map("suspended_reason")
+  suspendedManually      Boolean   @default(false) @map("suspended_manually")
+  failedLoginAttempts    Int       @default(0) @map("failed_login_attempts")
+  lastFailedLoginAt      DateTime? @map("last_failed_login_at")
+  forceResetOnLogin      Boolean   @default(false) @map("force_reset_on_login")
+
+  // ── 2FA scaffold (F15) ──
+  totpSecret      String?  @map("totp_secret") @db.VarChar(256)
+  totpEnabled     Boolean  @default(false) @map("totp_enabled")
+  totpBackupCodes Json?    @map("totp_backup_codes") // JSONB array
+
+  // ── Session / activity tracking ──
+  lastLoginAt DateTime? @map("last_login_at")
+
+  sessions              Session[]
+  notifications         Notification[]
+  viewerPerms           ViewerPermission[]
+  pendingChanges        PendingChange[]
+  emailOtpTokens        EmailOtpToken[]
+  pendingEmailVerifs    PendingEmailVerification[]
+  systemActivityLogs    SystemActivityLog[]     @relation("ActorLogs")
+  targetActivityLogs    SystemActivityLog[]     @relation("TargetLogs")
+  permissionAuditsMade  PermissionAuditLog[]    @relation("AuditorLogs")
+  permissionAuditsOn    PermissionAuditLog[]    @relation("AuditedAccountLogs")
+  emailChangeLogs       EmailChangeLog[]
+  savedDbQueries        SuperAdminSavedQuery[]
 
   @@map("users")
 }
@@ -37,15 +72,23 @@ enum UserRole {
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  userId       String   @map("user_id")
-  token        String   @unique
-  expiresAt    DateTime @map("expires_at")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  token          String   @unique
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  lastActiveAt   DateTime @default(now()) @map("last_active_at")
+  isRemembered   Boolean  @default(false) @map("is_remembered")
+  onboardingStep Int?     @map("onboarding_step") // F5: 1=email, 2=otp, 3=password, 4=done
+  deviceHint     String?  @map("device_hint")
+  ipRegion       String?  @map("ip_region")
+  userAgent      String?  @map("user_agent")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
   @@map("sessions")
 }
 
@@ -479,4 +522,133 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ─── Email OTP Tokens (F4) ───────────────────────────────────────────────────
+
+model EmailOtpToken {
+  id           String        @id @default(cuid())
+  userId       String        @map("user_id")
+  otpHash      String        @map("otp_hash")
+  emailUsed    String        @map("email_used") @db.VarChar(320)
+  tokenType    OtpTokenType  @map("token_type")
+  expiresAt    DateTime      @map("expires_at")
+  consumedAt   DateTime?     @map("consumed_at")
+  attemptCount Int           @default(0) @map("attempt_count")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([emailUsed])
+  @@index([expiresAt])
+  @@map("email_otp_tokens")
+}
+
+enum OtpTokenType {
+  email_verification @map("email_verification")
+  password_reset     @map("password_reset")
+}
+
+// ─── Pending Email Verifications (F5) ────────────────────────────────────────
+
+model PendingEmailVerification {
+  id                   String                     @id @default(cuid())
+  userId               String                     @map("user_id")
+  email                String                     @db.VarChar(320)
+  status               PendingEmailStatus         @default(pending)
+  createdAt            DateTime                   @default(now()) @map("created_at")
+  scheduledDeletionAt  DateTime?                  @map("scheduled_deletion_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledDeletionAt])
+  @@map("pending_email_verifications")
+}
+
+enum PendingEmailStatus {
+  pending
+  verified
+  expired
+  deleted
+}
+
+// ─── Permission Audit Log (F2.3) ─────────────────────────────────────────────
+
+model PermissionAuditLog {
+  id                 String   @id @default(cuid())
+  whoChangedId       String   @map("who_changed_id")
+  accountAffectedId  String   @map("account_affected_id")
+  permissionChanged  String   @map("permission_changed")
+  oldValue           String?  @map("old_value")
+  newValue           String?  @map("new_value")
+  changedAt          DateTime @default(now()) @map("changed_at")
+
+  whoChanged      User @relation("AuditorLogs", fields: [whoChangedId], references: [id], onDelete: Cascade)
+  accountAffected User @relation("AuditedAccountLogs", fields: [accountAffectedId], references: [id], onDelete: Cascade)
+
+  @@index([whoChangedId])
+  @@index([accountAffectedId])
+  @@index([changedAt])
+  @@map("permission_audit_logs")
+}
+
+// ─── System Activity Log (F12) ───────────────────────────────────────────────
+
+model SystemActivityLog {
+  id         String   @id @default(cuid())
+  actorId    String   @map("actor_id")
+  actionType String   @map("action_type") // login, logout, otp_sent, otp_verified, otp_failed, password_changed, email_verified, account_created, account_suspended, permission_changed, session_revoked, db_destructive_query
+  targetId   String?  @map("target_id")
+  metadata   Json?    // Additional context
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+  immutable  Boolean  @default(false) // For db_destructive_query — cannot be deleted
+
+  actor  User  @relation("ActorLogs", fields: [actorId], references: [id], onDelete: Cascade)
+  target User? @relation("TargetLogs", fields: [targetId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([actionType])
+  @@index([targetId])
+  @@index([createdAt])
+  @@map("system_activity_logs")
+}
+
+// ─── Email Change Log (F10.4) ────────────────────────────────────────────────
+
+model EmailChangeLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  oldEmail  String?  @map("old_email") @db.VarChar(320)
+  newEmail  String   @map("new_email") @db.VarChar(320)
+  changedBy String   @map("changed_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("email_change_logs")
+}
+
+// ─── Super Admin Saved Queries (F16.7) ───────────────────────────────────────
+
+model SuperAdminSavedQuery {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  queryText String   @map("query_text")
+  folder    String?
+  shared    Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  lastRunAt DateTime? @map("last_run_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("superadmin_saved_queries")
 }

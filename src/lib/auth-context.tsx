@@ -10,6 +10,15 @@ export interface UserAccount {
   username: string;
   displayName: string;
   role: UserRole;
+  userEmail: string | null;
+  emailVerified: boolean;
+  passwordChangedAfterCreation: boolean;
+}
+
+/** Onboarding is required when email is missing or password hasn't been changed after account creation. */
+export function needsOnboarding(user: UserAccount | null): boolean {
+  if (!user) return false;
+  return !user.emailVerified || !user.passwordChangedAfterCreation;
 }
 
 interface AuthContextType {
@@ -20,10 +29,11 @@ interface AuthContextType {
   isViewer: boolean;
   isLoggedIn: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<string | null>;
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<string | null>;
   logout: () => void;
   refreshUser: () => void;
   canAccessPage: (pageSlug: string) => boolean;
+  requiresOnboarding: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,13 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username: (session.user as { username?: string }).username ?? session.user.email ?? "",
         displayName: session.user.name ?? "",
         role: ((session.user as { role?: string }).role ?? "viewer") as UserRole,
+        userEmail: (session.user as { userEmail?: string | null }).userEmail ?? null,
+        emailVerified: (session.user as { emailVerified?: boolean }).emailVerified ?? false,
+        passwordChangedAfterCreation: (session.user as { passwordChangedAfterCreation?: boolean }).passwordChangedAfterCreation ?? false,
       }
     : null;
 
-  const login = useCallback(async (username: string, password: string): Promise<string | null> => {
+  const login = useCallback(async (username: string, password: string, rememberMe = false): Promise<string | null> => {
     const result = await signIn("credentials", {
       username,
       password,
+      rememberMe: rememberMe ? "true" : "false",
       redirect: false,
     });
 
@@ -92,9 +106,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isViewer = user?.role === "viewer";
   const isLoggedIn = !!user;
   const loading = status === "loading";
+  const requiresOnboarding = needsOnboarding(user);
 
   const value: AuthContextType = {
-    user, isAdmin, isSuperAdmin, isEditor, isViewer, isLoggedIn, loading, login, logout, refreshUser, canAccessPage,
+    user, isAdmin, isSuperAdmin, isEditor, isViewer, isLoggedIn, loading,
+    login, logout, refreshUser, canAccessPage, requiresOnboarding,
   };
 
   return (

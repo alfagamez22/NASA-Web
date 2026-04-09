@@ -59,12 +59,22 @@ export async function DELETE(req: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-// PUT /api/modules — update a module's display name or subNav
+// PUT /api/modules — update a module's display name, subNav, or reorder
 export async function PUT(req: NextRequest) {
   const { error } = await requireEditor();
   if (error) return error;
 
   const body = await req.json();
+
+  // Bulk reorder: { reorder: [{ id, order }] }
+  if (body.reorder && Array.isArray(body.reorder)) {
+    const ops = (body.reorder as { id: string; order: number }[]).map((item) =>
+      prisma.module.update({ where: { id: item.id }, data: { order: item.order } })
+    );
+    await prisma.$transaction(ops);
+    return NextResponse.json({ success: true });
+  }
+
   const { id, display, subNav, format } = body as { id: string; display?: string; subNav?: { display: string; href: string; format?: string }[]; format?: string };
 
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });

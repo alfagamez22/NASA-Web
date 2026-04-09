@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Search, Settings, LogOut, Pencil, X, Check, Bell, Move, Edit2, Plus, Trash2, Shield, ChevronDown, ChevronUp, Upload, Image as ImageIcon } from "lucide-react";
+import { Search, Settings, LogOut, Pencil, X, Check, Bell, Move, Edit2, Plus, Trash2, Shield, ChevronDown, ChevronUp, Upload, Image as ImageIcon, GripVertical } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEditMode } from "@/lib/edit-mode-context";
 
@@ -97,6 +97,40 @@ export default function Header() {
   function openAddModule() {
     setFormDisplay("");
     setEditModal({ mode: "add-module" });
+  }
+
+  // ─── Drag & Drop Reorder ─────────────────────────────────
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  function handleDragStart(idx: number) {
+    setDragIdx(idx);
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    if (dragIdx !== null && dragIdx !== idx) setDragOverIdx(idx);
+  }
+
+  function handleDragEnd() {
+    setDragIdx(null);
+    setDragOverIdx(null);
+  }
+
+  async function handleDrop(targetIdx: number) {
+    if (dragIdx === null || dragIdx === targetIdx) { handleDragEnd(); return; }
+    const reordered = [...modules];
+    const [moved] = reordered.splice(dragIdx, 1);
+    reordered.splice(targetIdx, 0, moved);
+    setModules(reordered); // optimistic update
+    handleDragEnd();
+    try {
+      await fetch("/api/modules", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reorder: reordered.map((m, i) => ({ id: m.id, order: i })) }),
+      });
+    } catch { /* revert will happen on next fetch */ }
   }
 
   async function saveModule(id: string, data: { display?: string; subNav?: SubNavItem[] }) {
@@ -218,7 +252,7 @@ export default function Header() {
 
         {/* Nav Links */}
         <div className="flex flex-grow overflow-x-auto md:overflow-visible no-scrollbar">
-          {navItems.map((item) => {
+          {navItems.map((item, idx) => {
             const isActive = pathname === item.href || (pathname.startsWith(item.href + "/") && item.href !== "/");
             const navClasses = `px-6 py-4 font-display text-xl uppercase tracking-tighter transition-all whitespace-nowrap flex items-center h-full ${isActive
               ? "bg-nasa-blue text-nasa-light-cyan"
@@ -231,9 +265,32 @@ export default function Header() {
             };
 
             const hasSubItems = item.subItems && item.subItems.length > 0;
+            const isDragOver = isEditMode && editNavExpanded && dragOverIdx === idx && dragIdx !== idx;
 
             return (
-              <div key={item.label} className="relative group flex h-full">
+              <div
+                key={item.label}
+                className="relative group flex h-full"
+                draggable={isEditMode && editNavExpanded}
+                onDragStart={() => handleDragStart(idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDragEnd={handleDragEnd}
+                onDrop={() => handleDrop(idx)}
+                style={{
+                  opacity: dragIdx === idx ? 0.4 : 1,
+                  borderLeft: isDragOver ? "3px solid var(--accent-color)" : undefined,
+                  transition: "opacity 0.15s, border 0.15s",
+                }}
+              >
+                {/* Drag handle — visible in edit mode */}
+                {isEditMode && editNavExpanded && (
+                  <div
+                    className="absolute left-0 top-0 bottom-0 z-50 flex items-center px-0.5 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <GripVertical size={12} />
+                  </div>
+                )}
                 <Link href={item.href} className={navClasses} style={navStyles}>
                   {item.display}
                 </Link>

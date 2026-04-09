@@ -86,7 +86,8 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
   const [formUsername, setFormUsername] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formDisplayName, setFormDisplayName] = useState("");
-  const [formRole, setFormRole] = useState<"editor" | "viewer">("viewer");
+  const [formRole, setFormRole] = useState<string>("viewer");
+  const [formEmail, setFormEmail] = useState("");
 
   // Admin account form
   const [adminUsername, setAdminUsername] = useState("");
@@ -95,6 +96,25 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
 
   // Viewer permissions
   const [permPages, setPermPages] = useState<string[]>([]);
+
+  // Role options based on current user role
+  const roleOptions = (() => {
+    const base: { value: string; label: string }[] = [
+      { value: "viewer", label: "VIEWER" },
+      { value: "editor", label: "EDITOR" },
+    ];
+    if (user?.role === "super_admin") {
+      base.push({ value: "admin", label: "ADMIN" });
+      base.push({ value: "super_admin", label: "SUPER ADMIN" });
+    } else if (user?.role === "admin") {
+      // Admins can create admins only if they have the permission
+      const perms = (user as any).accountPermissions;
+      if (perms && typeof perms === "object" && (perms as any).canCreateAdmin) {
+        base.push({ value: "admin", label: "ADMIN" });
+      }
+    }
+    return base;
+  })();
 
   useEffect(() => {
     if (isOpen) {
@@ -126,6 +146,7 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
     setFormPassword("");
     setFormDisplayName("");
     setFormRole("viewer");
+    setFormEmail("");
     setEditingUser(null);
     setIsCreating(false);
   }
@@ -133,10 +154,12 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
   async function handleCreateUser() {
     if (!formUsername || !formPassword || !formDisplayName) return;
     try {
+      const body: Record<string, string> = { username: formUsername, password: formPassword, displayName: formDisplayName, role: formRole };
+      if (formEmail.trim()) body.email = formEmail.trim();
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: formUsername, password: formPassword, displayName: formDisplayName, role: formRole }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -174,13 +197,19 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
   }
 
   async function handleToggleRole(u: DBUser) {
-    const newRole = u.role === "editor" ? "viewer" : "editor";
+    const availableRoles = roleOptions.map(o => o.value);
+    const currentIdx = availableRoles.indexOf(u.role);
+    const nextRole = availableRoles[(currentIdx + 1) % availableRoles.length];
     try {
-      await fetch("/api/users", {
+      const res = await fetch("/api/users", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: u.id, role: newRole }),
+        body: JSON.stringify({ id: u.id, role: nextRole }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to change role");
+      }
     } catch { /* ignore */ }
     refreshList();
   }
@@ -263,7 +292,7 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
 
   if (!isOpen) return null;
 
-  const nonAdminUsers = users.filter((u) => u.role !== "admin");
+  const manageableUsers = users; // API already returns only lower-rank users
   const unreadCount = notifications.filter((n) => !n.read).length;
   const pendingCount = pendingChanges.length;
 
@@ -431,14 +460,23 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                     className="w-full p-2 font-mono text-sm bg-transparent outline-none"
                     style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
                   />
+                  <input
+                    type="email"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    placeholder="Email (optional)"
+                    className="w-full p-2 font-mono text-sm bg-transparent outline-none"
+                    style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                  />
                   <select
                     value={formRole}
-                    onChange={(e) => setFormRole(e.target.value as "editor" | "viewer")}
+                    onChange={(e) => setFormRole(e.target.value)}
                     className="w-full p-2 font-mono text-sm bg-transparent outline-none cursor-pointer"
                     style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)", background: "var(--bg-primary)" }}
                   >
-                    <option value="viewer">VIEWER</option>
-                    <option value="editor">EDITOR</option>
+                    {roleOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
                   </select>
                   <div className="flex gap-2">
                     <button onClick={isCreating ? handleCreateUser : handleUpdateUser} className="nasa-btn text-xs">
@@ -479,12 +517,12 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
 
               {/* User List */}
               <div className="space-y-2">
-                {nonAdminUsers.length === 0 && (
+                {manageableUsers.length === 0 && (
                   <p className="font-mono text-xs uppercase" style={{ color: "var(--text-secondary)" }}>
                     No users created yet.
                   </p>
                 )}
-                {nonAdminUsers.map((u) => (
+                {manageableUsers.map((u) => (
                   <div key={u.id} className="flex items-center justify-between p-3" style={{ border: "1px solid var(--border-color)" }}>
                     <div>
                       <span className="font-mono text-sm font-bold" style={{ color: "var(--text-primary)" }}>
@@ -497,8 +535,8 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                         className="font-mono text-[10px] ml-2 px-2 py-0.5 uppercase"
                         style={{
                           border: "1px solid",
-                          borderColor: u.role === "editor" ? "rgba(0,212,255,0.5)" : "rgba(255,191,0,0.4)",
-                          color: u.role === "editor" ? "#00d4ff" : "#ffc107",
+                          borderColor: u.role === "super_admin" ? "rgba(147,51,234,0.5)" : u.role === "admin" ? "rgba(59,130,246,0.5)" : u.role === "editor" ? "rgba(0,212,255,0.5)" : "rgba(255,191,0,0.4)",
+                          color: u.role === "super_admin" ? "#a78bfa" : u.role === "admin" ? "#60a5fa" : u.role === "editor" ? "#00d4ff" : "#ffc107",
                         }}
                       >
                         {u.role}

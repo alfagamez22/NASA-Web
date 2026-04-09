@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/auth-context";
 import LoginPage from "./LoginPage";
+import OnboardingGate from "./OnboardingGate";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, loading } = useAuth();
@@ -24,5 +25,5 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return <LoginPage />;
   }
 
-  return <>{children}</>;
+  return <OnboardingGate>{children}</OnboardingGate>;
 }
