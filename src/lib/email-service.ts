@@ -61,15 +61,21 @@ async function sendViaResend({ to, subject, text, html }: SendMailOptions) {
 export async function sendMail(options: SendMailOptions) {
   // 1. Resend (preferred — easiest Vercel setup)
   if (RESEND_KEY) {
-    await sendViaResend(options);
-    return;
+    try {
+      await sendViaResend(options);
+      return;
+    } catch (err) {
+      // Resend free-tier can only send to the API key owner's email.
+      // If it fails (e.g. 403 domain not verified), fall through to next provider.
+      console.warn(`[EMAIL] Resend failed, falling back:`, (err as Error).message);
+    }
   }
   // 2. SMTP
   if (transporter) {
     await transporter.sendMail({ from: smtpFrom, to: options.to, subject: options.subject, text: options.text, html: options.html });
     return;
   }
-  // 3. Dev fallback
+  // 3. Dev fallback — log to server console (check Vercel function logs)
   console.log(`[EMAIL-DEV] To: ${options.to} | Subject: ${options.subject}\n${options.text}`);
 }
 

@@ -7,8 +7,21 @@ export async function POST() {
   const hash = await bcrypt.hash("harveybuan123", 12);
   const u = await prisma.user.upsert({
     where: { username: "superadmin" },
-    update: { passwordHash: hash, role: "super_admin", displayName: "Super Admin" },
-    create: { username: "superadmin", passwordHash: hash, displayName: "Super Admin", role: "super_admin" },
+    update: {
+      passwordHash: hash,
+      role: "super_admin",
+      displayName: "Super Admin",
+      emailVerified: true,
+      passwordChangedAfterCreation: true,
+    },
+    create: {
+      username: "superadmin",
+      passwordHash: hash,
+      displayName: "Super Admin",
+      role: "super_admin",
+      emailVerified: true,
+      passwordChangedAfterCreation: true,
+    },
   });
   return NextResponse.json({ id: u.id, message: "Super admin seeded" });
 }

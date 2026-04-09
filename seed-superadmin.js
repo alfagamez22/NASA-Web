@@ -8,9 +8,9 @@ async function main() {
   const hash = await bcrypt.hash("harveybuan123", 12);
   
   const result = await pool.query(
-    `INSERT INTO users (id, username, password_hash, display_name, role, created_at, updated_at)
-     VALUES (gen_random_uuid()::text, 'superadmin', $1, 'Super Admin', 'super_admin', NOW(), NOW())
-     ON CONFLICT (username) DO UPDATE SET password_hash = $1, role = 'super_admin', display_name = 'Super Admin', updated_at = NOW()
+    `INSERT INTO users (id, username, password_hash, display_name, role, email_verified, password_changed_after_creation, created_at, updated_at)
+     VALUES (gen_random_uuid()::text, 'superadmin', $1, 'Super Admin', 'super_admin', true, true, NOW(), NOW())
+     ON CONFLICT (username) DO UPDATE SET password_hash = $1, role = 'super_admin', display_name = 'Super Admin', email_verified = true, password_changed_after_creation = true, updated_at = NOW()
      RETURNING id`,
     [hash]
   );
