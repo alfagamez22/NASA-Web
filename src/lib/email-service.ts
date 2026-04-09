@@ -14,8 +14,8 @@ const RESEND_KEY = process.env.RESEND_API_KEY;
 const SMTP_HOST = process.env.SMTP_HOST;
 
 // Resend free-tier uses onboarding@resend.dev; custom domain if verified
-const resendFrom = process.env.RESEND_FROM ?? "SCC RAN Portal <onboarding@resend.dev>";
-const smtpFrom = process.env.SMTP_FROM ?? "SCC RAN Portal <noreply@scc-ran.local>";
+const resendFrom = process.env.RESEND_FROM ?? "NASA Portal <onboarding@resend.dev>";
+const smtpFrom = process.env.SMTP_FROM ?? "NASA Portal <noreply@nasascc.com>";
 
 const transporter =
   SMTP_HOST
@@ -76,11 +76,11 @@ export async function sendMail(options: SendMailOptions) {
 /** Send a 6-digit OTP email */
 export async function sendOtpEmail(to: string, otp: string, purpose: "verification" | "password_reset") {
   const purposeLabel = purpose === "verification" ? "Email Verification" : "Password Reset";
-  const subject = `SCC RAN Portal — ${purposeLabel} Code`;
+  const subject = `NASA Portal — ${purposeLabel} Code`;
   const text = `Your ${purposeLabel.toLowerCase()} code is: ${otp}\n\nThis code expires in 15 minutes. Do not share it with anyone.`;
   const html = `
     <div style="font-family:sans-serif;max-width:420px;margin:0 auto;padding:24px">
-      <h2 style="color:#1a1a2e">SCC RAN Portal</h2>
+      <h2 style="color:#1a1a2e">NASA Portal</h2>
       <p>Your <strong>${purposeLabel.toLowerCase()}</strong> code is:</p>
       <div style="font-size:32px;letter-spacing:8px;font-weight:bold;background:#f4f4f8;padding:16px;text-align:center;border-radius:8px;margin:16px 0">${otp}</div>
       <p style="color:#666;font-size:13px">This code expires in 15 minutes. Do not share it with anyone.</p>
@@ -91,11 +91,11 @@ export async function sendOtpEmail(to: string, otp: string, purpose: "verificati
 
 /** Send a welcome email when an account is created (F14) */
 export async function sendWelcomeEmail(to: string, displayName: string, username: string) {
-  const subject = "Welcome to SCC RAN Portal";
+  const subject = "Welcome to NASA Portal";
   const text = `Hello ${displayName},\n\nYour account has been created.\n\nUsername: ${username}\n\nPlease log in and complete your account setup (email verification + password change).`;
   const html = `
     <div style="font-family:sans-serif;max-width:420px;margin:0 auto;padding:24px">
-      <h2 style="color:#1a1a2e">Welcome to SCC RAN Portal</h2>
+      <h2 style="color:#1a1a2e">Welcome to NASA Portal</h2>
       <p>Hello <strong>${displayName}</strong>,</p>
       <p>Your account has been created.</p>
       <p><strong>Username:</strong> ${username}</p>
