@@ -178,9 +178,11 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
+      // Refresh the JWT so the new cookie has passwordChangedAfterCreation=true,
+      // then force a full page reload. This is more reliable than waiting for
+      // React's session state to sync (which can loop indefinitely).
       await update();
-      setStep("done");
-      refreshUser();
+      window.location.href = "/";
     } catch { setError("Network error"); } finally { setLoading(false); }
   };
 
@@ -316,6 +318,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Your current password"
+                  autoComplete="current-password"
                   className="w-full p-3 font-mono text-sm bg-transparent outline-none focus:border-[var(--accent-color)]"
                   style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
                   autoFocus
@@ -328,6 +331,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Minimum 8 characters"
+                  autoComplete="new-password"
                   className="w-full p-3 font-mono text-sm bg-transparent outline-none focus:border-[var(--accent-color)]"
                   style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
                 />
@@ -362,6 +366,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter new password"
+                  autoComplete="new-password"
                   className="w-full p-3 font-mono text-sm bg-transparent outline-none focus:border-[var(--accent-color)]"
                   style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
                 />
