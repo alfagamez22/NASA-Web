@@ -414,7 +414,33 @@ model SiteConfig {
   footerPrivacy  String @default("PRIVACY") @map("footer_privacy")
   footerTerms    String @default("TERMS") @map("footer_terms")
   footerFeedback String @default("We would love to hear your thoughts or feedback on how we can improve your experience with VORTEX.") @map("footer_feedback")
+  footerSignoff  String @default("HAVE A NICE DAY!") @map("footer_signoff")
   knowMoreHeading String @default("KNOW MORE ABOUT...") @map("know_more_heading")
+
+  // Header / Footer image (base64 data URL, replaces text when set)
+  headerImage    String @default("") @map("header_image")
+  footerImage    String @default("") @map("footer_image")
+
+  // Report section
+  reportHeading     String @default("RAN REPORT") @map("report_heading")
+  reportSubheading  String @default("OFFICIAL NETWORK PHYSICAL LOCATION COUNT") @map("report_subheading")
+
+  // Team Drive section
+  teamDriveHeading       String  @default("TEAM DRIVE") @map("team_drive_heading")
+  teamDriveNotice        String  @default("*** THIS PAGE IS FOR NOC RAN USERS ONLY ***") @map("team_drive_notice")
+  teamDriveNoticeVisible Boolean @default(true) @map("team_drive_notice_visible")
+  driveLabel             String  @default("DRIVE:") @map("drive_label")
+  driveUrl               String  @default("") @map("drive_url")
+  ranConfigHeading       String  @default("RAN CONFIGURATION PPM") @map("ran_config_heading")
+  ranConfigUrl           String  @default("") @map("ran_config_url")
+
+  // Team Drive bottom banner
+  tdBottomTeams    String @default("NTG | OSCC | TAC | RAN") @map("td_bottom_teams")
+  tdBottomFeedback String @default("We would love to hear your thoughts or feedback on how we can improve your experience with VORTEX. Just SCAN or CLICK the QR Code.") @map("td_bottom_feedback")
+  tdBottomSignoff  String @default("Have a nice day!") @map("td_bottom_signoff")
+
+  // Shared QR URL (used in footer + team drive)
+  qrUrl String @default("https://docs.google.com/forms/d/e/1FAIpQLSf9O2wlqjlcv1uUAe-cHGNDpH6iEq7FOvNqeUl5lwP3tKdAhA/viewform") @map("qr_url")
 
   @@map("site_config")
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Search, Settings, LogOut, Pencil, X, Check, Bell, Move, Edit2, Plus, Trash2, Shield } from "lucide-react";
+import { Search, Settings, LogOut, Pencil, X, Check, Bell, Move, Edit2, Plus, Trash2, Shield, ChevronDown, ChevronUp, Upload, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEditMode } from "@/lib/edit-mode-context";
 
@@ -33,6 +33,13 @@ export default function Header() {
   const [headerTitle, setHeaderTitle] = useState("NASA");
   const [editingHeaderTitle, setEditingHeaderTitle] = useState(false);
   const [headerTitleDraft, setHeaderTitleDraft] = useState("NASA");
+  const [headerImage, setHeaderImage] = useState("");
+  const [showHeaderPopup, setShowHeaderPopup] = useState(false);
+  const [headerPopupDraft, setHeaderPopupDraft] = useState("");
+  const [headerPopupImage, setHeaderPopupImage] = useState("");
+
+  // Collapse toggle for nav edit controls
+  const [editNavExpanded, setEditNavExpanded] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -41,6 +48,7 @@ export default function Header() {
         if (res.ok) {
           const cfg = await res.json();
           if (cfg.headerTitle) setHeaderTitle(cfg.headerTitle);
+          if (cfg.headerImage) setHeaderImage(cfg.headerImage);
         }
       } catch { /* ignore */ }
     })();
@@ -192,43 +200,19 @@ export default function Header() {
           <div className="relative w-6 h-6 flex items-center justify-center shrink-0">
             <Image src="/broadcast.gif" alt="SCC RAN Logo" width={54} height={54} unoptimized className="absolute max-w-none object-contain" />
           </div>
-          {editingHeaderTitle ? (
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const trimmed = headerTitleDraft.trim();
-                if (trimmed) {
-                  setHeaderTitle(trimmed);
-                  try { await fetch("/api/site-config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ headerTitle: trimmed }) }); } catch { /* ignore */ }
-                }
-                setEditingHeaderTitle(false);
-              }}
-              className="flex items-center gap-1"
-            >
-              <input
-                type="text"
-                value={headerTitleDraft}
-                onChange={(e) => setHeaderTitleDraft(e.target.value)}
-                className="font-display text-2xl tracking-tighter bg-transparent outline-none w-24"
-                style={{ color: "var(--accent-light)", borderBottom: "1px solid var(--accent-color)" }}
-                autoFocus
-              />
-              <button type="submit" className="text-green-400 hover:text-green-300"><Check size={14} /></button>
-              <button type="button" onClick={() => setEditingHeaderTitle(false)} className="text-red-400 hover:text-red-300"><X size={14} /></button>
-            </form>
+          {headerImage ? (
+            <img src={headerImage} alt={headerTitle} className="h-8 max-w-[120px] object-contain" />
           ) : (
-            <>
-              <span className="font-display text-2xl tracking-tighter z-10">{headerTitle}</span>
-              {isEditMode && (
-                <button
-                  onClick={() => { setHeaderTitleDraft(headerTitle); setEditingHeaderTitle(true); }}
-                  className="absolute top-1 right-1 z-50 p-0.5 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover/logo:opacity-100 transition-opacity"
-                  title="Edit Title"
-                >
-                  <Edit2 size={10} />
-                </button>
-              )}
-            </>
+            <span className="font-display text-2xl tracking-tighter z-10">{headerTitle}</span>
+          )}
+          {isEditMode && (
+            <button
+              onClick={() => { setHeaderPopupDraft(headerTitle); setHeaderPopupImage(headerImage); setShowHeaderPopup(true); }}
+              className="absolute top-1 right-1 z-50 p-0.5 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover/logo:opacity-100 transition-opacity"
+              title="Edit Logo"
+            >
+              <Edit2 size={10} />
+            </button>
           )}
         </div>
 
@@ -254,8 +238,8 @@ export default function Header() {
                   {item.display}
                 </Link>
 
-                {/* Edit button for nav label — shown in edit mode */}
-                {isEditMode && (
+                {/* Edit button for nav label — shown in edit mode when expanded */}
+                {isEditMode && editNavExpanded && (
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditLabel(item._module); }}
                     className="absolute top-1 right-7 z-50 p-0.5 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
@@ -264,7 +248,7 @@ export default function Header() {
                     <Edit2 size={10} />
                   </button>
                 )}
-                {isEditMode && (
+                {isEditMode && editNavExpanded && (
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteModule(item._module); }}
                     className="absolute top-1 right-1 z-50 p-0.5 bg-black/80 text-red-400 hover:text-red-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
@@ -274,10 +258,10 @@ export default function Header() {
                   </button>
                 )}
 
-                {/* Dropdown — visible on hover OR in edit mode */}
-                {(hasSubItems || isEditMode) && (
+                {/* Dropdown — always on hover; edit controls only when expanded */}
+                {(hasSubItems || (isEditMode && editNavExpanded)) && (
                   <div
-                    className={`absolute left-0 top-full ${isEditMode ? "block" : "hidden group-hover:block"} min-w-full bg-nasa-darker z-[100] shadow-lg`}
+                    className={`absolute left-0 top-full ${isEditMode && editNavExpanded ? "block" : "hidden group-hover:block"} min-w-full bg-nasa-darker z-[100] shadow-lg`}
                     style={{ border: "2px solid var(--border-color-strong)", borderTop: "none" }}
                   >
                     {(item.subItems ?? []).map((sub, idx) => (
@@ -294,7 +278,7 @@ export default function Header() {
                             </span>
                           )}
                         </Link>
-                        {isEditMode && (
+                        {isEditMode && editNavExpanded && (
                           <div className="absolute top-1 right-1 z-50 flex gap-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
                             <button
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditSub(item._module, idx); }}
@@ -314,7 +298,7 @@ export default function Header() {
                         )}
                       </div>
                     ))}
-                    {isEditMode && (
+                    {isEditMode && editNavExpanded && (
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAddSub(item._module); }}
                         className="flex items-center gap-1 w-full px-6 py-2 font-mono text-xs uppercase text-green-400 hover:text-green-300 hover:bg-nasa-blue/30 transition-all"
@@ -330,7 +314,7 @@ export default function Header() {
           })}
 
           {/* Add new top-level nav module button */}
-          {isEditMode && (
+          {isEditMode && editNavExpanded && (
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAddModule(); }}
               className="px-4 py-4 flex items-center gap-1 font-mono text-xs uppercase text-green-400 hover:text-green-300 hover:bg-nasa-blue/30 transition-all h-full"
@@ -359,6 +343,15 @@ export default function Header() {
 
           {isEditMode && (
             <>
+              {/* Nav edit collapse toggle */}
+              <button
+                onClick={() => setEditNavExpanded((v) => !v)}
+                className={`flex items-center gap-1 px-2 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-all ${editNavExpanded ? "bg-cyan-500/20" : ""}`}
+                style={{ border: "1px solid var(--border-color)", color: editNavExpanded ? "var(--accent-light)" : "var(--text-secondary)" }}
+                title={editNavExpanded ? "Collapse nav editor" : "Expand nav editor"}
+              >
+                {editNavExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} NAV
+              </button>
               <button
                 onClick={toggleCanvasMode}
                 className={`flex items-center gap-1 px-2 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-all ${isCanvasMode ? "bg-cyan-500/20" : ""}`}
@@ -478,6 +471,73 @@ export default function Header() {
       )}
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+      {/* Header Logo Edit Popup */}
+      {showHeaderPopup && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-sm p-6 space-y-4 relative" style={{ background: "linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%)", border: "2px solid var(--border-color-strong)" }}>
+            <button onClick={() => setShowHeaderPopup(false)} className="absolute top-3 right-3 text-nasa-gray hover:text-white transition-colors" title="Close"><X size={16} /></button>
+            <h3 className="font-display text-xl uppercase" style={{ color: "var(--accent-color)" }}>EDIT HEADER LOGO</h3>
+
+            {/* Image upload area */}
+            <div className="space-y-2">
+              <label className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Logo Image (optional)</label>
+              {headerPopupImage ? (
+                <div className="flex items-center gap-3">
+                  <img src={headerPopupImage} alt="Preview" className="h-10 max-w-[120px] object-contain rounded" style={{ border: "1px solid var(--border-color)" }} />
+                  <button onClick={() => setHeaderPopupImage("")} className="text-red-400 hover:text-red-300 font-mono text-[10px] uppercase" title="Remove image">REMOVE</button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 px-3 py-2 cursor-pointer font-mono text-xs uppercase hover:bg-white/5 rounded transition-colors" style={{ border: "1px dashed var(--border-color)", color: "var(--text-secondary)" }}>
+                  <Upload size={14} /> Upload Image
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) { alert("Image must be under 2MB"); return; }
+                    const reader = new FileReader();
+                    reader.onload = () => setHeaderPopupImage(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }} />
+                </label>
+              )}
+            </div>
+
+            {/* Text input — hidden when image is set */}
+            {!headerPopupImage && (
+              <div className="space-y-1">
+                <label className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Text</label>
+                <input
+                  type="text"
+                  value={headerPopupDraft}
+                  onChange={(e) => setHeaderPopupDraft(e.target.value)}
+                  placeholder="e.g. NASA"
+                  className="w-full p-2 font-mono text-sm bg-transparent outline-none"
+                  style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                />
+              </div>
+            )}
+
+            <button
+              onClick={async () => {
+                const updates: Record<string, string> = {};
+                if (headerPopupImage) {
+                  updates.headerImage = headerPopupImage;
+                  setHeaderImage(headerPopupImage);
+                } else {
+                  updates.headerImage = "";
+                  updates.headerTitle = headerPopupDraft.trim() || "NASA";
+                  setHeaderImage("");
+                  setHeaderTitle(headerPopupDraft.trim() || "NASA");
+                }
+                try { await fetch("/api/site-config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) }); } catch { /* ignore */ }
+                setShowHeaderPopup(false);
+              }}
+              className="nasa-btn text-xs w-full"
+            >APPLY</button>
+          </div>
+        </div>
+      )}
+
       <AdminSettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <EditorNotificationPanel isOpen={isEditorNotificationsOpen} onClose={() => setIsEditorNotificationsOpen(false)} />
       <SuperAdminPanel isOpen={isSuperAdminOpen} onClose={() => setIsSuperAdminOpen(false)} />

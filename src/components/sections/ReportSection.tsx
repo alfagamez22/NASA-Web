@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Check, X } from "lucide-react";
 import MediaEmbed from "@/components/content/MediaEmbed";
 import { useEditMode } from "@/lib/edit-mode-context";
 import { usePendingChanges } from "@/lib/pending-context";
@@ -61,6 +61,32 @@ export default function ReportSection() {
   const { refresh: refreshHighlights } = useHighlight();
   const [slides, setSlides] = useState<ReportSlide[]>(DEFAULT_SLIDES);
   const [loaded, setLoaded] = useState(false);
+
+  // Editable headings
+  const [heading, setHeading] = useState("RAN REPORT");
+  const [subheading, setSubheading] = useState("OFFICIAL NETWORK PHYSICAL LOCATION COUNT");
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [fieldDraft, setFieldDraft] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/site-config");
+        if (res.ok) {
+          const cfg = await res.json();
+          if (cfg.reportHeading) setHeading(cfg.reportHeading);
+          if (cfg.reportSubheading) setSubheading(cfg.reportSubheading);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
+  function startFieldEdit(field: string, value: string) { setEditingField(field); setFieldDraft(value); }
+  async function saveFieldEdit(field: string, setter: (v: string) => void) {
+    const trimmed = fieldDraft.trim();
+    if (trimmed) { setter(trimmed); try { await fetch("/api/site-config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [field]: trimmed }) }); } catch { /* ignore */ } }
+    setEditingField(null);
+  }
 
   const fetchSlides = useCallback(async () => {
     try {
@@ -168,20 +194,44 @@ export default function ReportSection() {
           background: "linear-gradient(to bottom, rgba(5,15,30,0.6), rgba(5,15,30,0.9))",
         }}
       >
-        <h2 className="relative z-10 font-display text-7xl md:text-9xl uppercase tracking-tighter" style={{ textShadow: "0 0 20px var(--glow-color)", color: "var(--text-primary)" }}>
-          RAN REPORT
-        </h2>
+        <div className="relative z-10 group/rh">
+          {editingField === "reportHeading" ? (
+            <form onSubmit={(e) => { e.preventDefault(); saveFieldEdit("reportHeading", setHeading); }} className="flex items-center gap-2">
+              <input type="text" value={fieldDraft} onChange={(e) => setFieldDraft(e.target.value)} className="font-display text-7xl md:text-9xl uppercase tracking-tighter bg-transparent outline-none text-center" style={{ color: "var(--text-primary)", borderBottom: "2px solid var(--accent-color)" }} autoFocus />
+              <button type="submit" className="text-green-400 hover:text-green-300" title="Save"><Check size={20} /></button>
+              <button type="button" onClick={() => setEditingField(null)} className="text-red-400 hover:text-red-300" title="Cancel"><X size={20} /></button>
+            </form>
+          ) : (
+            <h2 className="font-display text-7xl md:text-9xl uppercase tracking-tighter" style={{ textShadow: "0 0 20px var(--glow-color)", color: "var(--text-primary)" }}>
+              {heading}
+            </h2>
+          )}
+          {isEditMode && editingField !== "reportHeading" && (
+            <button onClick={() => startFieldEdit("reportHeading", heading)} className="absolute top-2 right-2 z-50 p-1 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover/rh:opacity-100 transition-opacity" title="Edit Heading"><Edit2 size={14} /></button>
+          )}
+        </div>
       </div>
 
       <div className="p-8 md:p-16 max-w-7xl mx-auto space-y-12">
         {/* Clickable Title Section */}
         <div
-          className="border-y-4 py-6 cursor-pointer hover:bg-nasa-blue/20 transition-colors"
+          className="border-y-4 py-6 cursor-pointer hover:bg-nasa-blue/20 transition-colors relative group/rs"
           style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
         >
-          <h3 className="font-display text-4xl md:text-5xl uppercase tracking-tighter text-center" style={{ textShadow: "0 0 10px rgba(0,0,0,0.5)" }}>
-            OFFICIAL NETWORK PHYSICAL LOCATION COUNT
-          </h3>
+          {editingField === "reportSubheading" ? (
+            <form onSubmit={(e) => { e.preventDefault(); saveFieldEdit("reportSubheading", setSubheading); }} className="flex items-center justify-center gap-2">
+              <input type="text" value={fieldDraft} onChange={(e) => setFieldDraft(e.target.value)} className="font-display text-4xl md:text-5xl uppercase tracking-tighter bg-transparent outline-none text-center w-full" style={{ color: "var(--text-primary)", borderBottom: "2px solid var(--accent-color)" }} autoFocus />
+              <button type="submit" className="text-green-400 hover:text-green-300" title="Save"><Check size={18} /></button>
+              <button type="button" onClick={() => setEditingField(null)} className="text-red-400 hover:text-red-300" title="Cancel"><X size={18} /></button>
+            </form>
+          ) : (
+            <h3 className="font-display text-4xl md:text-5xl uppercase tracking-tighter text-center" style={{ textShadow: "0 0 10px rgba(0,0,0,0.5)" }}>
+              {subheading}
+            </h3>
+          )}
+          {isEditMode && editingField !== "reportSubheading" && (
+            <button onClick={() => startFieldEdit("reportSubheading", subheading)} className="absolute top-2 right-2 z-50 p-1 bg-black/80 text-cyan-400 hover:text-white rounded opacity-0 group-hover/rs:opacity-100 transition-opacity" title="Edit Subheading"><Edit2 size={14} /></button>
+          )}
         </div>
 
         {/* Media Embed Grid */}
