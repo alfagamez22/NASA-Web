@@ -38,13 +38,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only read-only queries (SELECT, EXPLAIN, SHOW) are allowed" }, { status: 403 });
     }
 
-    // Additional safety: block any semicolons followed by write operations (multi-statement injection)
-    if ((sql.match(/;/g) || []).length > 1) {
+    // Block multi-statement injection (any semicolons beyond the trailing one)
+    const stripped = sql.trim().replace(/;\s*$/, "");
+    if (stripped.includes(";")) {
       return NextResponse.json({ error: "Multi-statement queries are not allowed" }, { status: 403 });
     }
 
     try {
-      const result = await prisma.$queryRawUnsafe(sql.trim());
+      // Enforce statement timeout and read-only transaction
+      const result = await prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL statement_timeout = '30s'");
+        return tx.$queryRawUnsafe(sql.trim());
+      }, { isolationLevel: "Serializable" });
+
       const rows = Array.isArray(result) ? result : [result];
       // Limit returned rows
       const limited = rows.slice(0, 500);

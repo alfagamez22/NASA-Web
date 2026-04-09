@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
     if (!user || !user.email) {
       return NextResponse.json({ success: true, message: "If the account has a verified email, a code has been sent." });
     }
-    if (user.suspended) {
+    // Manually suspended accounts cannot reset password
+    if (user.suspended && user.suspendedManually) {
       return NextResponse.json({ success: true, message: "If the account has a verified email, a code has been sent." });
     }
 
@@ -42,6 +43,15 @@ export async function POST(req: NextRequest) {
     if (newPassword.length < 8) {
       return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
     }
+    if (!/[A-Z]/.test(newPassword)) {
+      return NextResponse.json({ error: "Password must contain at least 1 uppercase letter" }, { status: 400 });
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      return NextResponse.json({ error: "Password must contain at least 1 number" }, { status: 400 });
+    }
+    if (!/[^A-Za-z0-9]/.test(newPassword)) {
+      return NextResponse.json({ error: "Password must contain at least 1 special character" }, { status: 400 });
+    }
 
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user || !user.email) {
@@ -62,12 +72,6 @@ export async function POST(req: NextRequest) {
         passwordChangedAfterCreation: true,
         failedLoginAttempts: 0,
         lastFailedLoginAt: null,
-        // If suspended due to failed logins, unsuspend
-        ...(user.suspended && !user.suspendedManually ? {
-          suspended: false,
-          suspendedAt: null,
-          suspendedReason: null,
-        } : {}),
       },
     });
 

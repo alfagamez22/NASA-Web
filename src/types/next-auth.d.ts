@@ -9,6 +9,7 @@ declare module "next-auth" {
       userEmail: string | null;
       emailVerified: boolean;
       passwordChangedAfterCreation: boolean;
+      createdBy: string | null;
     } & Omit<NonNullable<DefaultSession["user"]>, "emailVerified">;
   }
 }
@@ -20,5 +21,6 @@ declare module "next-auth/jwt" {
     userEmail?: string | null;
     emailVerified?: boolean;
     passwordChangedAfterCreation?: boolean;
+    createdBy?: string | null;
   }
 }

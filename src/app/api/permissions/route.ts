@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/app/api/_helpers";
+import { requireAdmin } from "@/app/api/_helpers";
 
 // GET /api/permissions?userId=xxx
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAdmin();
   if (error) return error;
 
   const userId = req.nextUrl.searchParams.get("userId");
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
 // PUT /api/permissions
 export async function PUT(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAdmin();
   if (error) return error;
 
   const body = await req.json();

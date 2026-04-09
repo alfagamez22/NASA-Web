@@ -13,12 +13,17 @@ export interface UserAccount {
   userEmail: string | null;
   emailVerified: boolean;
   passwordChangedAfterCreation: boolean;
+  createdBy: string | null;
 }
 
-/** Onboarding is required when email is missing or password hasn't been changed after account creation. */
+/** Onboarding is required when email isn't verified, or when an admin-created account hasn't changed its password. */
 export function needsOnboarding(user: UserAccount | null): boolean {
   if (!user) return false;
-  return !user.emailVerified || !user.passwordChangedAfterCreation;
+  // Email must always be verified
+  if (!user.emailVerified) return true;
+  // Password change only required for admin-created accounts
+  if (!user.passwordChangedAfterCreation && user.createdBy) return true;
+  return false;
 }
 
 interface AuthContextType {
@@ -51,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userEmail: (session.user as { userEmail?: string | null }).userEmail ?? null,
         emailVerified: (session.user as { emailVerified?: boolean }).emailVerified ?? false,
         passwordChangedAfterCreation: (session.user as { passwordChangedAfterCreation?: boolean }).passwordChangedAfterCreation ?? false,
+        createdBy: (session.user as { createdBy?: string | null }).createdBy ?? null,
       }
     : null;
 

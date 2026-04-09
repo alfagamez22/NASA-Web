@@ -3,8 +3,11 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+const LOGIN_COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
+const LOGIN_COOLDOWN_THRESHOLD = 10;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt", maxAge: 24 * 60 * 60 }, // 24 h default
+  session: { strategy: "jwt", maxAge: 3 * 24 * 60 * 60 }, // 72 h default
   pages: {
     signIn: "/", // AuthGate handles the login UI
   },
@@ -32,8 +35,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user) return null;
 
-        // ── Suspension check (F13) ───────────────────────────────────
-        if (user.suspended) return null;
+        // ── Manual suspension check (admin action only) ──────────────
+        if (user.suspended && user.suspendedManually) return null;
+
+        // ── 3-minute cooldown after 10 consecutive failed logins ─────
+        if (
+          user.failedLoginAttempts >= LOGIN_COOLDOWN_THRESHOLD &&
+          user.lastFailedLoginAt &&
+          Date.now() - user.lastFailedLoginAt.getTime() < LOGIN_COOLDOWN_MS
+        ) {
+          return null; // Client shows cooldown message based on server response
+        }
+
+        // If cooldown expired, reset the counter so they get a fresh start
+        if (
+          user.failedLoginAttempts >= LOGIN_COOLDOWN_THRESHOLD &&
+          user.lastFailedLoginAt &&
+          Date.now() - user.lastFailedLoginAt.getTime() >= LOGIN_COOLDOWN_MS
+        ) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: 0, lastFailedLoginAt: null },
+          });
+        }
 
         const valid = await bcrypt.compare(
           credentials.password as string,
@@ -41,20 +65,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (!valid) {
-          // Track failed login attempts (F13 — auto-suspend after threshold)
-          const attempts = user.failedLoginAttempts + 1;
-          const updateData: Record<string, unknown> = {
-            failedLoginAttempts: attempts,
-            lastFailedLoginAt: new Date(),
-          };
-          // Auto-suspend after 10 consecutive failures
-          if (attempts >= 10) {
-            updateData.suspended = true;
-            updateData.suspendedAt = new Date();
-            updateData.suspendedReason = "Auto-suspended: exceeded 10 failed login attempts";
-            updateData.suspendedManually = false;
-          }
-          await prisma.user.update({ where: { id: user.id }, data: updateData });
+          // Track failed login attempts — no suspension, only cooldown
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginAttempts: { increment: 1 },
+              lastFailedLoginAt: new Date(),
+            },
+          });
           return null;
         }
 
@@ -65,6 +83,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             failedLoginAttempts: 0,
             lastFailedLoginAt: null,
             lastLoginAt: new Date(),
+            // Clear non-manual suspensions on successful login
+            ...(user.suspended && !user.suspendedManually
+              ? { suspended: false, suspendedAt: null, suspendedReason: null }
+              : {}),
           },
         });
 
@@ -76,7 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           userEmail: user.email,
           emailVerified: user.emailVerified,
           passwordChangedAfterCreation: user.passwordChangedAfterCreation,
-          suspended: user.suspended,
+          createdBy: user.createdBy,
         };
       },
     }),
@@ -89,12 +111,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           userEmail?: string | null;
           emailVerified?: boolean;
           passwordChangedAfterCreation?: boolean;
+          createdBy?: string | null;
         };
         token.role = authUser.role;
         token.username = user.email ?? undefined; // email holds username
         token.userEmail = authUser.userEmail ?? null;
         token.emailVerified = authUser.emailVerified ?? false;
         token.passwordChangedAfterCreation = authUser.passwordChangedAfterCreation ?? false;
+        token.createdBy = authUser.createdBy ?? null;
       }
       // Refresh user data from DB on session update
       if (trigger === "update" && token.sub) {
@@ -105,6 +129,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.userEmail = fresh.email;
           token.emailVerified = fresh.emailVerified;
           token.passwordChangedAfterCreation = fresh.passwordChangedAfterCreation;
+          token.createdBy = fresh.createdBy;
         }
       }
       return token;
@@ -117,6 +142,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           userEmail?: string | null;
           emailVerified?: boolean;
           passwordChangedAfterCreation?: boolean;
+          createdBy?: string | null;
         };
         const sessionUser = session.user as unknown as {
           id: string;
@@ -125,6 +151,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           userEmail: string | null;
           emailVerified: boolean;
           passwordChangedAfterCreation: boolean;
+          createdBy: string | null;
           email?: string | null;
         };
         if (token.sub) sessionUser.id = token.sub;
@@ -133,6 +160,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         sessionUser.userEmail = appToken.userEmail ?? null;
         sessionUser.emailVerified = appToken.emailVerified ?? false;
         sessionUser.passwordChangedAfterCreation = appToken.passwordChangedAfterCreation ?? false;
+        sessionUser.createdBy = appToken.createdBy ?? null;
       }
       return session;
     },

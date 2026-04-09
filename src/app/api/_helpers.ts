@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { hasMinRole, outranks, type UserRole } from "@/lib/role-hierarchy";
+import { prisma } from "@/lib/prisma";
 import type { Session } from "next-auth";
 
 type AuthResult = { error: NextResponse; session: null } | { error: null; session: Session };
@@ -12,6 +13,33 @@ export async function requireAuth(): Promise<AuthResult> {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }), session: null };
   }
   return { error: null, session };
+}
+
+/**
+ * Require the caller to be authenticated AND have completed onboarding.
+ * Checks the database for emailVerified and passwordChangedAfterCreation.
+ */
+export async function requireOnboarded(): Promise<AuthResult> {
+  const result = await requireAuth();
+  if (result.error) return result;
+  const userId = (result.session!.user as { id: string }).id;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { emailVerified: true, passwordChangedAfterCreation: true, createdBy: true },
+  });
+  if (!user) {
+    return { error: NextResponse.json({ error: "User not found" }, { status: 401 }), session: null };
+  }
+  if (!user.emailVerified || (!user.passwordChangedAfterCreation && user.createdBy)) {
+    return {
+      error: NextResponse.json(
+        { error: "Account setup required", code: "ONBOARDING_REQUIRED" },
+        { status: 403 }
+      ),
+      session: null,
+    };
+  }
+  return result;
 }
 
 /** Require the caller to hold at least `minRole` rank. */

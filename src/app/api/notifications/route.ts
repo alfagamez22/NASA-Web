@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/app/api/_helpers";
+import { requireAuth, requireAdmin } from "@/app/api/_helpers";
 
 // GET /api/notifications
 export async function GET(req: NextRequest) {
@@ -58,9 +58,9 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-// DELETE /api/notifications (clear all)
+// DELETE /api/notifications (clear all — admin only)
 export async function DELETE(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAdmin();
   if (error) return error;
 
   await prisma.notification.deleteMany();

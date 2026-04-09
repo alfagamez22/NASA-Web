@@ -10,8 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/email-service";
 
 const OTP_LENGTH = 6;
-const OTP_EXPIRY_MINUTES = 10;
-const MAX_ATTEMPTS = 5;
+const OTP_EXPIRY_MINUTES = 15;
 
 /** Generate a cryptographically random 6-digit OTP string. */
 function generateOtp(): string {
@@ -86,15 +85,6 @@ export async function verifyOtp(
 
   if (!token) {
     return { valid: false, error: "No valid OTP found. Please request a new code." };
-  }
-
-  if (token.attemptCount >= MAX_ATTEMPTS) {
-    // Mark as consumed to prevent further attempts
-    await prisma.emailOtpToken.update({
-      where: { id: token.id },
-      data: { consumedAt: new Date() },
-    });
-    return { valid: false, error: "Too many incorrect attempts. Please request a new code." };
   }
 
   const matches = await bcrypt.compare(code, token.otpHash);

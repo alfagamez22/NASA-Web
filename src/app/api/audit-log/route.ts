@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireSuperAdmin } from "@/app/api/_helpers";
+import { requireAdmin } from "@/app/api/_helpers";
 
-// GET /api/audit-log — super_admin can view login/logout history
+// GET /api/audit-log — admin+ can view login/logout history
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAdmin();
   if (error) return error;
 
   const limit = parseInt(req.nextUrl.searchParams.get("limit") ?? "200", 10);
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(logs);
 }
 
-// POST /api/audit-log — record a login/logout event
+// POST /api/audit-log — record a login/logout event (fire-and-forget from client)
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
@@ -34,33 +34,4 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(log, { status: 201 });
 }
 
-// DELETE /api/audit-log — super_admin can clear all logs or delete one by id
-export async function DELETE(req: NextRequest) {
-  const { error } = await requireSuperAdmin();
-  if (error) return error;
-
-  const logId = req.nextUrl.searchParams.get("id");
-
-  if (logId) {
-    try {
-      await prisma.auditLog.delete({ where: { id: logId } });
-    } catch {
-      return NextResponse.json(
-        { success: false, error: "Audit log not found." },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: "Audit log deleted.",
-    });
-  }
-
-  await prisma.auditLog.deleteMany({});
-
-  return NextResponse.json({
-    success: true,
-    message: "All audit logs have been cleared.",
-  });
-}
+// DELETE removed — audit logs are immutable records
