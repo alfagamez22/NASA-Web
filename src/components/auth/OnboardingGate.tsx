@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 
 type OnboardingStep = "email" | "otp" | "password" | "done";
 
@@ -178,10 +178,19 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
-      // Refresh the JWT so the new cookie has passwordChangedAfterCreation=true,
-      // then force a full page reload. This is more reliable than waiting for
-      // React's session state to sync (which can loop indefinitely).
-      await update();
+      // Re-authenticate with the new password so NextAuth mints a fresh JWT
+      // with emailVerified=true and passwordChangedAfterCreation=true straight
+      // from the authorize() DB read. This is more reliable than update() which
+      // can race with the browser writing the Set-Cookie before the hard reload.
+      try {
+        await signIn("credentials", {
+          username: user!.username,
+          password: newPassword,
+          redirect: false,
+        });
+      } catch {
+        // Ignore — DB is already correct, fresh JWT from signIn is a best-effort bonus
+      }
       window.location.href = "/";
     } catch { setError("Network error"); } finally { setLoading(false); }
   };

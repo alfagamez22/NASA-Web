@@ -537,13 +537,13 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
                             <select
                               value={createForm.role}
                               onChange={(e) => setCreateForm(f => ({ ...f, role: e.target.value }))}
-                              className="px-3 py-1.5 rounded bg-transparent outline-none font-mono text-sm cursor-pointer"
-                              style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                              className="px-3 py-1.5 rounded outline-none font-mono text-sm cursor-pointer"
+                              style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)", background: "var(--bg-card, #0a1428)" }}
                             >
-                              <option value="viewer">Viewer</option>
-                              <option value="editor">Editor</option>
-                              <option value="admin">Admin</option>
-                              <option value="super_admin">Super Admin</option>
+                              <option value="viewer" style={{ background: "#0a1428", color: "var(--text-primary)" }}>Viewer</option>
+                              <option value="editor" style={{ background: "#0a1428", color: "var(--text-primary)" }}>Editor</option>
+                              <option value="admin" style={{ background: "#0a1428", color: "var(--text-primary)" }}>Admin</option>
+                              <option value="super_admin" style={{ background: "#0a1428", color: "var(--text-primary)" }}>Super Admin</option>
                             </select>
                           </div>
                           <div className="flex gap-2 pt-1">
@@ -670,22 +670,22 @@ export default function SuperAdminPanel({ isOpen, onClose }: SuperAdminPanelProp
                     <select
                       value={activityFilter}
                       onChange={(e) => { setActivityFilter(e.target.value); setActivityPage(1); }}
-                      className="px-2 py-1 rounded bg-transparent outline-none font-mono text-xs cursor-pointer"
-                      style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                      className="px-2 py-1 rounded outline-none font-mono text-xs cursor-pointer"
+                      style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)", background: "var(--bg-card, #0a1428)" }}
                     >
-                      <option value="">All Actions</option>
-                      <option value="user_created">User Created</option>
-                      <option value="user_updated">User Updated</option>
-                      <option value="user_deleted">User Deleted</option>
-                      <option value="user_suspended">User Suspended</option>
-                      <option value="user_unsuspended">User Unsuspended</option>
-                      <option value="login_success">Login Success</option>
-                      <option value="login_failed">Login Failed</option>
-                      <option value="password_changed">Password Changed</option>
-                      <option value="password_reset">Password Reset</option>
-                      <option value="email_verified">Email Verified</option>
-                      <option value="otp_sent">OTP Sent</option>
-                      <option value="role_changed">Role Changed</option>
+                      <option value="" style={{ background: "#0a1428" }}>All Actions</option>
+                      <option value="user_created" style={{ background: "#0a1428" }}>User Created</option>
+                      <option value="user_updated" style={{ background: "#0a1428" }}>User Updated</option>
+                      <option value="user_deleted" style={{ background: "#0a1428" }}>User Deleted</option>
+                      <option value="user_suspended" style={{ background: "#0a1428" }}>User Suspended</option>
+                      <option value="user_unsuspended" style={{ background: "#0a1428" }}>User Unsuspended</option>
+                      <option value="login_success" style={{ background: "#0a1428" }}>Login Success</option>
+                      <option value="login_failed" style={{ background: "#0a1428" }}>Login Failed</option>
+                      <option value="password_changed" style={{ background: "#0a1428" }}>Password Changed</option>
+                      <option value="password_reset" style={{ background: "#0a1428" }}>Password Reset</option>
+                      <option value="email_verified" style={{ background: "#0a1428" }}>Email Verified</option>
+                      <option value="otp_sent" style={{ background: "#0a1428" }}>OTP Sent</option>
+                      <option value="role_changed" style={{ background: "#0a1428" }}>Role Changed</option>
                     </select>
                   </div>
 

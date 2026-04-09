@@ -471,11 +471,11 @@ export default function AdminSettingsPanel({ isOpen, onClose }: AdminSettingsPan
                   <select
                     value={formRole}
                     onChange={(e) => setFormRole(e.target.value)}
-                    className="w-full p-2 font-mono text-sm bg-transparent outline-none cursor-pointer"
-                    style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)", background: "var(--bg-primary)" }}
+                    className="w-full p-2 font-mono text-sm outline-none cursor-pointer"
+                    style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)", background: "var(--bg-card, #0a1428)" }}
                   >
                     {roleOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value} style={{ background: "#0a1428", color: "var(--text-primary)" }}>{opt.label}</option>
                     ))}
                   </select>
                   <div className="flex gap-2">
