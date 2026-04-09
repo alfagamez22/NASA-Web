@@ -1,12 +1,11 @@
 /**
  * Server-side middleware — enforces auth + onboarding gate on ALL routes.
  *
- * Uses NextAuth v5 `auth()` wrapper to decode JWT without DB access.
- * Protected routes require a valid session; onboarding-incomplete users
- * are blocked from all API routes except auth-related ones.
+ * Uses `getToken` from next-auth/jwt to decode the JWT without importing
+ * Prisma (which uses Node.js modules incompatible with Edge Runtime).
  */
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 const PUBLIC_API_PREFIXES = [
   "/api/auth/",          // NextAuth + OTP + onboarding + forgot-password + 2FA
@@ -19,7 +18,7 @@ const ONBOARDING_ALLOWED_API = [
   "/api/auth/two-factor",
 ];
 
-export default auth((req) => {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Static assets / Next.js internals — always allow
@@ -39,10 +38,10 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  const session = req.auth;
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
 
   // ── Not authenticated ──────────────────────────────────────
-  if (!session?.user) {
+  if (!token) {
     // API calls → 401
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -52,15 +51,9 @@ export default auth((req) => {
   }
 
   // ── Authenticated — enforce onboarding gate on API routes ──
-  const user = session.user as {
-    emailVerified?: boolean;
-    passwordChangedAfterCreation?: boolean;
-    createdBy?: string | null;
-  };
-
-  const emailIncomplete = !user.emailVerified;
+  const emailIncomplete = !token.emailVerified;
   const passwordIncomplete =
-    !user.passwordChangedAfterCreation && !!user.createdBy;
+    !token.passwordChangedAfterCreation && !!token.createdBy;
   const needsOnboarding = emailIncomplete || passwordIncomplete;
 
   if (needsOnboarding && pathname.startsWith("/api/")) {
@@ -75,7 +68,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image).*)"],
