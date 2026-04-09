@@ -122,13 +122,17 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
-      await update();
+      // Advance step immediately — before update() triggers a re-render,
+      // so the step state is correct even if the session briefly goes through
+      // a loading phase.
       if (needsPasswordChange) {
         setStep("password");
       } else {
         setStep("done");
-        refreshUser();
       }
+      // Refresh the JWT in the background so the session reflects the new
+      // emailVerified state going forward.
+      update().then(() => refreshUser()).catch(() => {});
     } catch { setError("Network error"); } finally { setLoading(false); }
   };
 

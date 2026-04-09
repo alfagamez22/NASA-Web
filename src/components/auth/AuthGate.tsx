@@ -5,10 +5,12 @@ import LoginPage from "./LoginPage";
 import OnboardingGate from "./OnboardingGate";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn, loading, user } = useAuth();
 
-  // Show nothing while checking session (prevents flash of login page)
-  if (loading) {
+  // Show spinner only on the very first auth check (no previous user).
+  // Do NOT show it during session refreshes (e.g. update() after OTP verify)
+  // because that would unmount OnboardingGate and reset its step state.
+  if (loading && !user) {
     return (
       <div
         className="fixed inset-0 z-[300] flex items-center justify-center"
