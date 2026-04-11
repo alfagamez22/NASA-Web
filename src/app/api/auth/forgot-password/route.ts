@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { createAndSendOtp, verifyOtp } from "@/lib/otp-engine";
-import { logActivity } from "@/lib/activity-logger";
+import { prisma } from "@/infrastructure/prisma/client";
+import { createAndSendOtp, verifyOtp } from "@/domains/auth/services/otp.service";
+import { logActivity } from "@/infrastructure/logging/activity-logger";
 import bcrypt from "bcryptjs";
 
 // POST /api/auth/forgot-password

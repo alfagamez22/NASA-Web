@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuth, requireAdmin, requireOutranks } from "@/app/api/_helpers";
-import { outranks, getRank, manageableRoles } from "@/lib/role-hierarchy";
-import { logActivity } from "@/lib/activity-logger";
-import { sendWelcomeEmail } from "@/lib/email-service";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAuth, requireAdmin, requireOutranks } from "@/shared/utils/api-helpers";
+import { outranks, getRank, manageableRoles } from "@/domains/auth/services/role-hierarchy";
+import { logActivity } from "@/infrastructure/logging/activity-logger";
+import { sendWelcomeEmail } from "@/infrastructure/email/email.service";
 import bcrypt from "bcryptjs";
 
 // GET /api/users

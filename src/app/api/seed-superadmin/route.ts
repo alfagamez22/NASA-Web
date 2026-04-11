@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/infrastructure/prisma/client";
 import bcrypt from "bcryptjs";
 
 // POST /api/seed-superadmin — one-time seed (remove after use)

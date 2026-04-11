@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAdmin } from "@/shared/utils/api-helpers";
 
 // GET /api/audit-log — admin+ can view login/logout history
 export async function GET(req: NextRequest) {

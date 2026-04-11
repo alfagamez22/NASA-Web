@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuth, requireEditor } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAuth, requireEditor } from "@/shared/utils/api-helpers";
 
 // GET /api/teams — includes spine, teams with members
 export async function GET(req: NextRequest) {

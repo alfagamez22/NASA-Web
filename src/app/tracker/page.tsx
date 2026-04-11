@@ -1,4 +1,4 @@
-// import TrackerSection from "@/components/sections/TrackerSection";
+// import TrackerSection from "@/domains/tracker/components/TrackerSection";
 //
 // export const metadata = {
 //   title: "Tracker — SCC RAN Portal",

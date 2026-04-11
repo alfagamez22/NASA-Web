@@ -1,4 +1,4 @@
-import RegionalReportSection from "@/components/sections/RegionalReportSection";
+import RegionalReportSection from "@/domains/reports/components/RegionalReportSection";
 
 export const metadata = {
   title: "3G Report — SCC RAN Portal",

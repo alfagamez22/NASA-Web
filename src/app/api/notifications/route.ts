@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuth, requireAdmin } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAuth, requireAdmin } from "@/shared/utils/api-helpers";
 
 // GET /api/notifications
 export async function GET(req: NextRequest) {

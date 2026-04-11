@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-import Providers from "@/components/layout/Providers";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import Providers from "@/shared/components/layout/Providers";
+import Header from "@/shared/components/layout/Header";
+import Footer from "@/shared/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Vortex Portal",

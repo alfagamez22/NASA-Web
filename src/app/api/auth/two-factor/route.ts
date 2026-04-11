@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAuth } from "@/shared/utils/api-helpers";
 import crypto from "crypto";
 
 // 2FA SCAFFOLD — TOTP setup/verify/disable

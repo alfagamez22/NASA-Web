@@ -1,4 +1,4 @@
-import TeamSection from "@/components/sections/TeamSection";
+import TeamSection from "@/domains/teams/components/TeamSection";
 
 export const metadata = {
   title: "Team — SCC RAN Portal",

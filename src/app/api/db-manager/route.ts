@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireSuperAdmin } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireSuperAdmin } from "@/shared/utils/api-helpers";
 
 // GET /api/db-manager — list saved queries
 export async function GET(req: NextRequest) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireSuperAdmin } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAdmin, requireSuperAdmin } from "@/shared/utils/api-helpers";
 
 // GET /api/activity-log?page=1&limit=50&actionType=login&actorId=xxx
 export async function GET(req: NextRequest) {

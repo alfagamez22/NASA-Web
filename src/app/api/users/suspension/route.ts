@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/app/api/_helpers";
-import { outranks } from "@/lib/role-hierarchy";
-import { logActivity } from "@/lib/activity-logger";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAdmin } from "@/shared/utils/api-helpers";
+import { outranks } from "@/domains/auth/services/role-hierarchy";
+import { logActivity } from "@/infrastructure/logging/activity-logger";
 
 // POST /api/users/suspension — { userId, action: "suspend" | "unsuspend", reason? }
 export async function POST(req: NextRequest) {

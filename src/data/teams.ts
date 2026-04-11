@@ -1,4 +1,4 @@
-import type { Team } from "@/lib/types";
+import type { Team } from "@/shared/types";
 
 export const TEAM_DATA: Team[] = [
   {

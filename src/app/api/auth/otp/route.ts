@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/app/api/_helpers";
-import { createAndSendOtp, verifyOtp } from "@/lib/otp-engine";
-import { prisma } from "@/lib/prisma";
-import { logActivity } from "@/lib/activity-logger";
+import { requireAuth } from "@/shared/utils/api-helpers";
+import { createAndSendOtp, verifyOtp } from "@/domains/auth/services/otp.service";
+import { prisma } from "@/infrastructure/prisma/client";
+import { logActivity } from "@/infrastructure/logging/activity-logger";
 
 // POST /api/auth/otp — { action: "send" | "verify", email?, code?, tokenType }
 export async function POST(req: NextRequest) {

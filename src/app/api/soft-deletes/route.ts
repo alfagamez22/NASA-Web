@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAdmin } from "@/shared/utils/api-helpers";
 
 // GET /api/soft-deletes — list soft-deleted items (admin/super_admin)
 export async function GET(req: NextRequest) {

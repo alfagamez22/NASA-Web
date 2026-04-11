@@ -1,4 +1,4 @@
-import KnowMoreSection from "@/components/sections/KnowMoreSection";
+import KnowMoreSection from "@/domains/sections/components/KnowMoreSection";
 
 export const metadata = {
   title: "Know More — SCC RAN Portal",

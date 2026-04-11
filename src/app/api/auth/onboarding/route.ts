@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/app/api/_helpers";
-import { prisma } from "@/lib/prisma";
-import { logActivity } from "@/lib/activity-logger";
+import { requireAuth } from "@/shared/utils/api-helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { logActivity } from "@/infrastructure/logging/activity-logger";
 import bcrypt from "bcryptjs";
 
 // POST /api/auth/onboarding — { action: "change-password", currentPassword, newPassword }

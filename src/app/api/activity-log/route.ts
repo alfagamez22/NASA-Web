@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAuth } from "@/shared/utils/api-helpers";
 
 // GET /api/activity-log — returns recent activity logs
 // Query params:

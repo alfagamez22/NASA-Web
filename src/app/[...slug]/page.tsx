@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
-import { resolveSlugRoute, getModules } from "@/lib/content-service";
-import { prisma } from "@/lib/prisma";
+import { resolveSlugRoute, getModules } from "@/domains/sections/services/content.service";
+import { prisma } from "@/infrastructure/prisma/client";
 
-import HomeSection from "@/components/sections/HomeSection";
-import KnowMoreSection from "@/components/sections/KnowMoreSection";
-// import TrackerSection from "@/components/sections/TrackerSection";
-import ReportSection from "@/components/sections/ReportSection";
-import TeamSection from "@/components/sections/TeamSection";
-import SectionDetailPage from "@/components/content/SectionDetailPage";
-import DynamicPage from "@/components/sections/DynamicPage";
+import HomeSection from "@/domains/sections/components/HomeSection";
+import KnowMoreSection from "@/domains/sections/components/KnowMoreSection";
+// import TrackerSection from "@/domains/tracker/components/TrackerSection";
+import ReportSection from "@/domains/reports/components/ReportSection";
+import TeamSection from "@/domains/teams/components/TeamSection";
+import SectionDetailPage from "@/domains/sections/components/SectionDetailPage";
+import DynamicPage from "@/domains/sections/components/DynamicPage";
 
 /**
  * Catch-all dynamic route — resolves any slug path to the appropriate view.

@@ -5,7 +5,7 @@
  * Under the hood it now reads from modules.json via content-service.
  */
 
-import { getNavItems } from "@/lib/content-service";
-import type { NavItem } from "@/lib/types";
+import { getNavItems } from "@/domains/sections/services/content.service";
+import type { NavItem } from "@/shared/types";
 
 export const NAV_ITEMS: NavItem[] = getNavItems();

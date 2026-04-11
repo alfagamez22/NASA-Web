@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuth, requireEditor } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAuth, requireEditor } from "@/shared/utils/api-helpers";
 
 const DEFAULTS: Record<string, unknown> = {
   id: "singleton",

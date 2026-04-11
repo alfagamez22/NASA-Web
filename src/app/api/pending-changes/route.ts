@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuth, requireEditor, requireAdmin } from "@/app/api/_helpers";
+import { prisma } from "@/infrastructure/prisma/client";
+import { requireAuth, requireEditor, requireAdmin } from "@/shared/utils/api-helpers";
 
 // GET /api/pending-changes — list pending changes (optionally filter by status)
 export async function GET(req: NextRequest) {
